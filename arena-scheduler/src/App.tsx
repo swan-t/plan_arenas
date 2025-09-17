@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import SeasonsManager from '@/components/SeasonsManager';
+import SetupPage from '@/components/SetupPage';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -15,8 +15,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="container">
-        <h1>Arena Scheduler</h1>
-        <SeasonsManager />
+        <SetupPage />
       </div>
     </QueryClientProvider>
   );
