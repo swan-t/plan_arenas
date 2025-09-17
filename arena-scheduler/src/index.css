@@ -23,9 +23,25 @@ body {
 /* Main Navigation */
 .main-nav {
   display: flex;
-  gap: 0;
-  margin-bottom: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
   border-bottom: 2px solid #eee;
+  margin-bottom: 2rem;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.nav-left {
+  display: flex;
+  flex: 1;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
 }
 
 .nav-btn {
@@ -50,6 +66,29 @@ body {
   color: #007bff;
   border-bottom-color: #007bff;
   background-color: #f8f9fa;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.user-email {
+  font-weight: 500;
+}
+
+.admin-badge {
+  background-color: #28a745;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Layout */
@@ -654,4 +693,221 @@ h2 {
     border-bottom-color: #007bff;
     border-right: 3px solid #007bff;
   }
+}
+
+/* Login page styles */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1rem;
+}
+
+.login-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-header h1 {
+  color: #333;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.login-header p {
+  color: #666;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.login-form {
+  margin-bottom: 1.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.form-input:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-actions .btn {
+  flex: 1;
+}
+
+.error-message {
+  background-color: #fee;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  border: 1px solid #fcc;
+}
+
+.dev-code-notice {
+  background-color: #e8f4fd;
+  border: 1px solid #b3d9ff;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dev-code-notice p {
+  margin: 0 0 0.5rem 0;
+  color: #0066cc;
+  font-size: 0.9rem;
+}
+
+.dev-code {
+  display: block;
+  background-color: #f0f8ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #0066cc;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.login-footer {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.login-footer p {
+  margin: 0.5rem 0;
+}
+
+.login-footer code {
+  background-color: #f1f3f4;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #d63384;
+}
+
+/* Login responsive */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1.5rem;
+    margin: 0.5rem;
+  }
+  
+  .login-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+}
+
+/* User Management Styles */
+.user-management {
+  max-width: 1000px;
+}
+
+.user-management .section-header {
+  margin-bottom: 2rem;
+}
+
+.user-management .section-header h2 {
+  margin-bottom: 0.5rem;
+  color: #2c2c2c;
+}
+
+.user-management .section-header p {
+  color: #666;
+  margin: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.btn-danger:disabled {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
 }

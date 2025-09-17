@@ -114,3 +114,43 @@ export interface CreateUserData {
   email_code?: string;
   code_expires_at?: string;
 }
+
+// Authentication types
+export interface AuthSession {
+  code: string;
+  expires_at: string;
+}
+
+export interface SendCodeRequest {
+  email: string;
+}
+
+export interface SendCodeResponse {
+  message: string;
+  code?: string; // Only in development mode
+}
+
+export interface VerifyCodeRequest {
+  email: string;
+  code: string;
+}
+
+export interface VerifyCodeResponse {
+  message: string;
+  session: AuthSession;
+}
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  team_id: number | null;
+  admin: boolean;
+}
+
+export interface LogoutRequest {
+  code: string;
+}
+
+export interface LogoutResponse {
+  message: string;
+}

@@ -16,6 +16,13 @@ import type {
   CreateTeamData,
   CreateGameData,
   CreateUserData,
+  SendCodeRequest,
+  SendCodeResponse,
+  VerifyCodeRequest,
+  VerifyCodeResponse,
+  CurrentUser,
+  LogoutRequest,
+  LogoutResponse,
 } from '@/types';
 
 const API_BASE_URL = 'https://grind.local/arenax/api';
@@ -173,7 +180,6 @@ export const gamesApi = {
   },
 };
 export const gameChangesApi = createApiService<GameChange, any>('game_changes', 'game_change');
-export const usersApi = createApiService<User, CreateUserData>('users', 'user');
 
 // Nested resource endpoints
 export const nestedApi = {
@@ -199,6 +205,101 @@ export const nestedApi = {
   getSeasonLeagues: async (seasonId: number): Promise<League[]> => {
     const response = await api.get<ApiResponse<League[]>>(`/seasons/${seasonId}/leagues`);
     return response.data.data;
+  },
+};
+
+// Users API (Admin only)
+export const usersApi = {
+  // Get all users
+  getAll: async (): Promise<User[]> => {
+    const response = await api.get<ApiResponse<User[]>>('/users');
+    return response.data.data;
+  },
+
+  // Get user by ID
+  getById: async (id: number): Promise<User> => {
+    const response = await api.get<ApiResponse<User>>(`/users/${id}`);
+    return response.data.data;
+  },
+
+  // Create user
+  create: async (data: CreateUserData): Promise<User> => {
+    const response = await api.post<ApiResponse<User>>('/users', { user: data });
+    return response.data.data;
+  },
+
+  // Update user
+  update: async (id: number, data: Partial<CreateUserData>): Promise<User> => {
+    const response = await api.put<ApiResponse<User>>(`/users/${id}`, { user: data });
+    return response.data.data;
+  },
+
+  // Delete user
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/users/${id}`);
+  },
+};
+
+// Authentication API
+export const authApi = {
+  // Send verification code
+  sendCode: async (data: SendCodeRequest): Promise<SendCodeResponse> => {
+    const response = await api.post<SendCodeResponse>('/auth/send-code', data);
+    return response.data;
+  },
+
+  // Verify code and create session
+  verifyCode: async (data: VerifyCodeRequest): Promise<VerifyCodeResponse> => {
+    const response = await api.post<VerifyCodeResponse>('/auth/verify-code', data);
+    return response.data;
+  },
+
+  // Get current user
+  getCurrentUser: async (): Promise<CurrentUser> => {
+    const response = await api.get<ApiResponse<CurrentUser>>('/auth/me');
+    return response.data.data;
+  },
+
+  // Logout
+  logout: async (data: LogoutRequest): Promise<LogoutResponse> => {
+    const response = await api.post<LogoutResponse>('/auth/logout', data);
+    return response.data;
+  },
+};
+
+// Session management utilities
+export const sessionManager = {
+  // Set session token in API headers
+  setSessionToken: (token: string) => {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  },
+
+  // Clear session token
+  clearSessionToken: () => {
+    delete api.defaults.headers.common['Authorization'];
+  },
+
+  // Get session from localStorage
+  getSession: (): string | null => {
+    return localStorage.getItem('arena_session_token');
+  },
+
+  // Save session to localStorage
+  saveSession: (token: string) => {
+    localStorage.setItem('arena_session_token', token);
+  },
+
+  // Remove session from localStorage
+  removeSession: () => {
+    localStorage.removeItem('arena_session_token');
+  },
+
+  // Initialize session on app start
+  initializeSession: () => {
+    const token = sessionManager.getSession();
+    if (token) {
+      sessionManager.setSessionToken(token);
+    }
   },
 };
 

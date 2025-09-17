@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { seasonsApi, arenasApi, clubsApi, leaguesApi } from '@/services/api';
+import UserManagement from '@/components/UserManagement';
 import type { Season, Arena, Club, League, CreateSeasonData, CreateArenaData, CreateClubData, CreateLeagueData } from '@/types';
 
 const SetupPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'seasons' | 'arenas' | 'clubs' | 'leagues'>('seasons');
+  const [activeTab, setActiveTab] = useState<'seasons' | 'arenas' | 'clubs' | 'leagues' | 'users'>('seasons');
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
   
   // Form states
@@ -378,6 +379,12 @@ const SetupPage: React.FC = () => {
           onClick={() => setActiveTab('leagues')}
         >
           Leagues ({leagues.length})
+        </button>
+        <button
+          className={`tab ${activeTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Users
         </button>
       </div>
 
@@ -930,6 +937,13 @@ const SetupPage: React.FC = () => {
           </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <div className="tab-content">
+          <UserManagement />
         </div>
       )}
     </div>

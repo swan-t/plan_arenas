@@ -1,7 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { UserProvider, useUser } from '@/contexts/UserContext';
+import LoginPage from '@/components/LoginPage';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import SetupPage from '@/components/SetupPage';
 import TeamsGamesPage from '@/components/TeamsGamesPage';
+import { sessionManager } from '@/services/api';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -13,14 +17,30 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+// Initialize session on app start
+sessionManager.initializeSession();
+
+const AppContent: React.FC = () => {
+  const { isAuthenticated, isAdmin, user, logout, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState<'setup' | 'teams-games'>('setup');
 
+  if (isLoading) {
+    return (
+      <div className="loading">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="container">
-        {/* Navigation */}
-        <nav className="main-nav">
+    <div className="container">
+      {/* Navigation */}
+      <nav className="main-nav">
+        <div className="nav-left">
           <button
             className={`nav-btn ${currentPage === 'setup' ? 'active' : ''}`}
             onClick={() => setCurrentPage('setup')}
@@ -33,12 +53,39 @@ function App() {
           >
             Teams & Games
           </button>
-        </nav>
+        </div>
+        <div className="nav-right">
+          <div className="user-info">
+            <span className="user-email">{user?.email}</span>
+            {isAdmin && <span className="admin-badge">Admin</span>}
+          </div>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={logout}
+          >
+            Logout
+          </button>
+        </div>
+      </nav>
 
-        {/* Page Content */}
+      {/* Page Content */}
+      <ProtectedRoute requireAdmin={true}>
         {currentPage === 'setup' && <SetupPage />}
+      </ProtectedRoute>
+      
+      <ProtectedRoute>
         {currentPage === 'teams-games' && <TeamsGamesPage />}
-      </div>
+      </ProtectedRoute>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <UserProvider>
+        <AppContent />
+      </UserProvider>
     </QueryClientProvider>
   );
 }
