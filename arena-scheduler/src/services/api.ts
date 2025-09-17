@@ -60,7 +60,39 @@ const createApiService = <T, CreateT>(endpoint: string, wrapperKey: string) => (
 export const arenasApi = createApiService<Arena, CreateArenaData>('arenas', 'arena');
 export const clubsApi = createApiService<Club, CreateClubData>('clubs', 'club');
 export const seasonsApi = createApiService<Season, CreateSeasonData>('seasons', 'season');
-export const leaguesApi = createApiService<League, CreateLeagueData>('leagues', 'league');
+// Leagues API - uses nested endpoints
+export const leaguesApi = {
+  // Get leagues for a specific season
+  getBySeason: async (seasonId: number): Promise<League[]> => {
+    const response = await api.get<ApiResponse<League[]>>(`/seasons/${seasonId}/leagues`);
+    return response.data.data;
+  },
+
+  // Get a specific league by ID (if needed)
+  getById: async (id: number): Promise<League> => {
+    const response = await api.get<ApiResponse<League>>(`/leagues/${id}`);
+    return response.data.data;
+  },
+
+  // Create a league
+  create: async (data: CreateLeagueData): Promise<League> => {
+    const wrappedData = { league: data };
+    const response = await api.post<ApiResponse<League>>('/leagues', wrappedData);
+    return response.data.data;
+  },
+
+  // Update a league
+  update: async (id: number, data: Partial<CreateLeagueData>): Promise<League> => {
+    const wrappedData = { league: data };
+    const response = await api.put<ApiResponse<League>>(`/leagues/${id}`, wrappedData);
+    return response.data.data;
+  },
+
+  // Delete a league
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/leagues/${id}`);
+  },
+};
 export const teamsApi = createApiService<Team, CreateTeamData>('teams', 'team');
 export const gamesApi = createApiService<Game, CreateGameData>('games', 'game');
 export const gameChangesApi = createApiService<GameChange, any>('game_changes', 'game_change');

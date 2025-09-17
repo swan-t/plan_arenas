@@ -395,6 +395,70 @@ h2 {
   border-top: 1px solid #dee2e6;
 }
 
+/* Form rows for side-by-side inputs */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Item details for leagues */
+.item-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.item-details .item-detail {
+  font-size: 0.75rem;
+  color: #666;
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+}
+
+.item-details .item-detail a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.item-details .item-detail a:hover {
+  text-decoration: underline;
+}
+
+/* Season selector */
+.season-selector {
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.season-selector label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #1976d2;
+}
+
+.season-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.disabled-select {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .container {
@@ -451,5 +515,15 @@ h2 {
   
   .item-actions {
     justify-content: flex-end;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .item-details {
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }
