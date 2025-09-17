@@ -20,6 +20,38 @@ body {
   min-height: 100vh;
 }
 
+/* Main Navigation */
+.main-nav {
+  display: flex;
+  gap: 0;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #eee;
+}
+
+.nav-btn {
+  padding: 1rem 2rem;
+  border: none;
+  background: none;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.nav-btn:hover {
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.nav-btn.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background-color: #f8f9fa;
+}
+
 /* Layout */
 .container {
   max-width: 1200px;
@@ -459,6 +491,78 @@ h2 {
   cursor: not-allowed;
 }
 
+/* Teams & Games Page Styles */
+.teams-games-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.teams-games-page .header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.teams-games-page .header h1 {
+  margin-bottom: 0.5rem;
+  color: #1a1a1a;
+}
+
+.teams-games-page .header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Selection Section */
+.selection-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.selection-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: end;
+}
+
+.selection-row .form-group {
+  margin-bottom: 0;
+}
+
+.selection-row label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.season-select,
+.league-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.season-select:focus,
+.league-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.league-select:disabled {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .container {
@@ -525,5 +629,29 @@ h2 {
   .item-details {
     flex-direction: column;
     gap: 0.25rem;
+  }
+  
+  .selection-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .selection-section {
+    padding: 1rem;
+  }
+  
+  .main-nav {
+    flex-direction: column;
+  }
+  
+  .nav-btn {
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    border-right: none;
+  }
+  
+  .nav-btn.active {
+    border-bottom-color: #007bff;
+    border-right: 3px solid #007bff;
   }
 }

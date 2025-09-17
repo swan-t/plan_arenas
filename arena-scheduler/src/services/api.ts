@@ -93,8 +93,85 @@ export const leaguesApi = {
     await api.delete(`/leagues/${id}`);
   },
 };
-export const teamsApi = createApiService<Team, CreateTeamData>('teams', 'team');
-export const gamesApi = createApiService<Game, CreateGameData>('games', 'game');
+// Teams API - uses nested endpoints
+export const teamsApi = {
+  // Get teams for a specific league
+  getByLeague: async (leagueId: number): Promise<Team[]> => {
+    const response = await api.get<ApiResponse<Team[]>>(`/leagues/${leagueId}/teams`);
+    return response.data.data;
+  },
+
+  // Get all teams
+  getAll: async (): Promise<Team[]> => {
+    const response = await api.get<ApiResponse<Team[]>>('/teams');
+    return response.data.data;
+  },
+
+  // Get a specific team by ID
+  getById: async (id: number): Promise<Team> => {
+    const response = await api.get<ApiResponse<Team>>(`/teams/${id}`);
+    return response.data.data;
+  },
+
+  // Create a team
+  create: async (data: CreateTeamData): Promise<Team> => {
+    const wrappedData = { team: data };
+    const response = await api.post<ApiResponse<Team>>('/teams', wrappedData);
+    return response.data.data;
+  },
+
+  // Update a team
+  update: async (id: number, data: Partial<CreateTeamData>): Promise<Team> => {
+    const wrappedData = { team: data };
+    const response = await api.put<ApiResponse<Team>>(`/teams/${id}`, wrappedData);
+    return response.data.data;
+  },
+
+  // Delete a team
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/teams/${id}`);
+  },
+};
+
+// Games API - uses nested endpoints
+export const gamesApi = {
+  // Get games for a specific league
+  getByLeague: async (leagueId: number): Promise<Game[]> => {
+    const response = await api.get<ApiResponse<Game[]>>(`/leagues/${leagueId}/games`);
+    return response.data.data;
+  },
+
+  // Get all games
+  getAll: async (): Promise<Game[]> => {
+    const response = await api.get<ApiResponse<Game[]>>('/games');
+    return response.data.data;
+  },
+
+  // Get a specific game by ID
+  getById: async (id: number): Promise<Game> => {
+    const response = await api.get<ApiResponse<Game>>(`/games/${id}`);
+    return response.data.data;
+  },
+
+  // Create a game
+  create: async (data: CreateGameData): Promise<Game> => {
+    const wrappedData = { game: data };
+    const response = await api.post<ApiResponse<Game>>('/games', wrappedData);
+    return response.data.data;
+  },
+
+  // Update a game
+  update: async (id: number, data: Partial<CreateGameData>): Promise<Game> => {
+    const wrappedData = { game: data };
+    const response = await api.put<ApiResponse<Game>>(`/games/${id}`, wrappedData);
+    return response.data.data;
+  },
+
+  // Delete a game
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/games/${id}`);
+  },
+};
 export const gameChangesApi = createApiService<GameChange, any>('game_changes', 'game_change');
 export const usersApi = createApiService<User, CreateUserData>('users', 'user');
 
