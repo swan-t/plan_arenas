@@ -5,6 +5,8 @@ import LoginPage from '@/components/LoginPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import SetupPage from '@/components/SetupPage';
 import TeamsGamesPage from '@/components/TeamsGamesPage';
+import SchedulingPage from '@/components/SchedulingPage';
+import UserSchedulingPage from '@/components/UserSchedulingPage';
 import { sessionManager } from '@/services/api';
 import './index.css';
 
@@ -22,7 +24,7 @@ sessionManager.initializeSession();
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isAdmin, user, logout, isLoading } = useUser();
-  const [currentPage, setCurrentPage] = useState<'setup' | 'teams-games'>('setup');
+  const [currentPage, setCurrentPage] = useState<'setup' | 'teams-games' | 'scheduling'>('setup');
 
   if (isLoading) {
     return (
@@ -41,18 +43,39 @@ const AppContent: React.FC = () => {
       {/* Navigation */}
       <nav className="main-nav">
         <div className="nav-left">
-          <button
-            className={`nav-btn ${currentPage === 'setup' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('setup')}
-          >
-            Setup
-          </button>
-          <button
-            className={`nav-btn ${currentPage === 'teams-games' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('teams-games')}
-          >
-            Teams & Games
-          </button>
+          {isAdmin ? (
+            // Admin navigation
+            <>
+              <button
+                className={`nav-btn ${currentPage === 'setup' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('setup')}
+              >
+                Setup
+              </button>
+              <button
+                className={`nav-btn ${currentPage === 'teams-games' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('teams-games')}
+              >
+                Teams & Games
+              </button>
+              <button
+                className={`nav-btn ${currentPage === 'scheduling' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('scheduling')}
+              >
+                Scheduling
+              </button>
+            </>
+          ) : (
+            // Regular user navigation
+            <>
+              <button
+                className={`nav-btn ${currentPage === 'scheduling' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('scheduling')}
+              >
+                Schedule Games
+              </button>
+            </>
+          )}
         </div>
         <div className="nav-right">
           <div className="user-info">
@@ -69,13 +92,27 @@ const AppContent: React.FC = () => {
       </nav>
 
       {/* Page Content */}
-      <ProtectedRoute requireAdmin={true}>
-        {currentPage === 'setup' && <SetupPage />}
-      </ProtectedRoute>
-      
-      <ProtectedRoute>
-        {currentPage === 'teams-games' && <TeamsGamesPage />}
-      </ProtectedRoute>
+      {isAdmin ? (
+        // Admin interface
+        <>
+          <ProtectedRoute requireAdmin={true}>
+            {currentPage === 'setup' && <SetupPage />}
+          </ProtectedRoute>
+          
+          <ProtectedRoute>
+            {currentPage === 'teams-games' && <TeamsGamesPage />}
+          </ProtectedRoute>
+          
+          <ProtectedRoute requireAdmin={true}>
+            {currentPage === 'scheduling' && <SchedulingPage />}
+          </ProtectedRoute>
+        </>
+      ) : (
+        // Regular user interface
+        <>
+          {currentPage === 'scheduling' && <UserSchedulingPage />}
+        </>
+      )}
     </div>
   );
 };

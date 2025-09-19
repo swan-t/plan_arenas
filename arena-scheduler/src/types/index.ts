@@ -96,6 +96,7 @@ export interface CreateTeamData {
   league_id: number;
   url?: string;
   contact_email?: string;
+  scheduling_done_at?: string;
 }
 
 export interface CreateGameData {

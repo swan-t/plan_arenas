@@ -911,3 +911,452 @@ h2 {
   border-color: #6c757d;
   cursor: not-allowed;
 }
+
+/* Scheduling Page Styles */
+.scheduling-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.scheduling-page .header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.scheduling-page .header h1 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.scheduling-page .header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.placeholder {
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Team Cards */
+.teams-list {
+  display: grid;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.team-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.team-info h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.team-email {
+  margin: 0 0 12px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.team-status {
+  margin: 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.active {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-badge.completed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.team-actions {
+  min-width: 200px;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.completed-text {
+  color: #28a745;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Arena Selector */
+.arena-selector {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.arena-selector h2 {
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.arenas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.arena-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 30px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.arena-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.arena-card h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+}
+
+/* Arena Info */
+.arena-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+  padding: 10px 20px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  display: inline-flex;
+}
+
+.current-arena {
+  font-weight: 500;
+  color: #333;
+}
+
+/* User Scheduling Page */
+.games-section {
+  margin-top: 30px;
+}
+
+.games-section h2 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.no-games {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #666;
+}
+
+.games-list {
+  display: grid;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.game-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.game-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.game-info h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.game-details {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.game-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.team-info {
+  font-weight: 500;
+  color: #333;
+  margin-left: 15px;
+}
+
+.club-info {
+  font-weight: 500;
+  color: #666;
+  margin-left: 15px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* Scheduling Interface styles */
+.scheduling-interface {
+  padding: 20px;
+}
+
+.scheduling-interface h2 {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.game-scheduling {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.game-scheduling .game-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.game-scheduling .game-info h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.game-scheduling .game-info p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.time-selection h3 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.time-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid #ddd;
+}
+
+.legend-color.available {
+  background: white;
+  border-color: #ddd;
+}
+
+.legend-color.occupied {
+  background: #ffebee;
+  border-color: #ef5350;
+}
+
+.legend-color.disabled {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.day-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.day-btn {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.day-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.day-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.day-btn:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #e0e0e0;
+}
+
+.day-btn:disabled:hover {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.day-btn.correct-day {
+  border-color: #28a745;
+  font-weight: 600;
+}
+
+.day-btn.correct-day.active {
+  background: #28a745;
+  border-color: #28a745;
+}
+
+.time-slots {
+  display: grid;
+  gap: 20px;
+}
+
+.day-section {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+.day-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.day-section.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.day-section.disabled h4 {
+  color: #999;
+}
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.time-slot {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-slot:hover {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.time-slot:active {
+  background: #2196f3;
+  color: white;
+}
+
+.time-slot.disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #e0e0e0;
+}
+
+.time-slot.disabled:hover {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.time-slot.occupied {
+  background: #ffebee;
+  color: #c62828;
+  border-color: #ef5350;
+  cursor: not-allowed;
+}
+
+.time-slot.occupied:hover {
+  background: #ffebee;
+  border-color: #ef5350;
+}
+
+.scheduling-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 10px;
+}

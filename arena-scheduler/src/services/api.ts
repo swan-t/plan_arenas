@@ -102,6 +102,18 @@ export const leaguesApi = {
 };
 // Teams API - uses nested endpoints
 export const teamsApi = {
+  // Get teams for current season by arena
+  getByArena: async (arenaId: number): Promise<Team[]> => {
+    const response = await api.get<ApiResponse<Team[]>>(`/arenas/${arenaId}/teams`);
+    return response.data.data;
+  },
+
+  // Get teams for a specific season
+  getBySeason: async (seasonId: number): Promise<Team[]> => {
+    const response = await api.get<ApiResponse<Team[]>>(`/seasons/${seasonId}/teams`);
+    return response.data.data;
+  },
+
   // Get teams for a specific league
   getByLeague: async (leagueId: number): Promise<Team[]> => {
     const response = await api.get<ApiResponse<Team[]>>(`/leagues/${leagueId}/teams`);
