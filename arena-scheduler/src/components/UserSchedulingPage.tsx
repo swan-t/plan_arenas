@@ -9,7 +9,8 @@ const UserSchedulingPage: React.FC = () => {
   const [selectedArenaId, setSelectedArenaId] = useState<number | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [schedulingMode, setSchedulingMode] = useState<'list' | 'schedule'>('list');
-  const [selectedDay, setSelectedDay] = useState<'friday' | 'saturday' | 'sunday'>('friday');
+  const [selectedDay, setSelectedDay] = useState<'friday' | 'saturday' | 'sunday' | 'special'>('friday');
+  const [selectedWeek, setSelectedWeek] = useState<number>(0); // 0 = current week, -1 = previous week, 1 = next week
   const queryClient = useQueryClient();
 
   // First, fetch all seasons to get leagues from each season
@@ -167,20 +168,124 @@ const UserSchedulingPage: React.FC = () => {
     return 'friday';
   };
 
+  // Get the weekend dates for the selected week
+  const getWeekendDates = (weekOffset: number) => {
+    // Use the game's date as the reference point, not today's date
+    const referenceDate = selectedGame ? new Date(selectedGame.starts_at) : new Date();
+    const currentDay = referenceDate.getDay();
+    
+    // Calculate the Friday of the week containing the reference date
+    let daysToFriday;
+    if (currentDay === 0) { // Sunday
+      daysToFriday = -2; // Go back to Friday
+    } else if (currentDay === 6) { // Saturday
+      daysToFriday = -1; // Go back to Friday
+    } else if (currentDay === 5) { // Friday
+      daysToFriday = 0; // Today is Friday
+    } else { // Monday through Thursday
+      daysToFriday = 5 - currentDay; // Days until Friday
+    }
+    
+    const friday = new Date(referenceDate);
+    friday.setDate(referenceDate.getDate() + daysToFriday);
+    
+    // Add week offset
+    friday.setDate(friday.getDate() + (weekOffset * 7));
+    
+    const saturday = new Date(friday);
+    saturday.setDate(friday.getDate() + 1);
+    
+    const sunday = new Date(friday);
+    sunday.setDate(friday.getDate() + 2);
+    
+    return { friday, saturday, sunday };
+  };
+
+
+  // Get special days within the week (Monday to Sunday)
+  const getSpecialDaysInRange = () => {
+    const { friday, sunday } = getWeekendDates(selectedWeek);
+    const specialDays = [];
+    
+    // Calculate the Monday of the week (5 days before Friday)
+    const monday = new Date(friday);
+    monday.setDate(friday.getDate() - 5);
+    
+    // Calculate the Sunday of the week (same as our sunday)
+    const weekEnd = new Date(sunday);
+    
+    // Check if 26/12 or 6/1 fall within the week range (Monday to Sunday)
+    const startDate = new Date(monday);
+    const endDate = new Date(weekEnd);
+    
+    // Check 26/12 of the current year
+    const dec26 = new Date(friday.getFullYear(), 11, 26); // Month is 0-indexed
+    if (dec26 >= startDate && dec26 <= endDate) {
+      specialDays.push({ date: dec26, name: 'Boxing Day (26/12)' });
+    }
+    
+    // Check 6/1 of the current year
+    const jan6 = new Date(friday.getFullYear(), 0, 6); // Month is 0-indexed
+    if (jan6 >= startDate && jan6 <= endDate) {
+      specialDays.push({ date: jan6, name: 'Epiphany (6/1)' });
+    }
+    
+    // Check 26/12 of next year (in case we're in December and looking at January)
+    const nextYearDec26 = new Date(friday.getFullYear() + 1, 11, 26);
+    if (nextYearDec26 >= startDate && nextYearDec26 <= endDate) {
+      specialDays.push({ date: nextYearDec26, name: 'Boxing Day (26/12)' });
+    }
+    
+    // Check 6/1 of next year (in case we're in December and looking at January)
+    const nextYearJan6 = new Date(friday.getFullYear() + 1, 0, 6);
+    if (nextYearJan6 >= startDate && nextYearJan6 <= endDate) {
+      specialDays.push({ date: nextYearJan6, name: 'Epiphany (6/1)' });
+    }
+    
+    return specialDays;
+  };
+
+  // Get the date for a specific day in the selected week
+  const getDateForDay = (day: 'friday' | 'saturday' | 'sunday' | 'special') => {
+    if (day === 'special') {
+      const specialDays = getSpecialDaysInRange();
+      return specialDays.length > 0 ? specialDays[0].date : new Date();
+    }
+    const { friday, saturday, sunday } = getWeekendDates(selectedWeek);
+    return day === 'friday' ? friday : day === 'saturday' ? saturday : sunday;
+  };
+
+  // Check if a date is a blocked day (24/12, 25/12, 31/12)
+  const isBlockedDay = (date: Date) => {
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    return (day === 24 && month === 12) || // Christmas Eve
+           (day === 25 && month === 12) || // Christmas Day
+           (day === 31 && month === 12);   // New Year's Eve
+  };
+
   // Check if a time slot is available (not conflicting with other games)
-  const isTimeSlotAvailable = (time: string, gameDay: 'friday' | 'saturday' | 'sunday') => {
+  const isTimeSlotAvailable = (time: string, gameDay: 'friday' | 'saturday' | 'sunday' | 'special') => {
     if (!selectedGame || !userArena) return true;
     
     const [hours, minutes] = time.split(':');
-    const slotTime = new Date(selectedGame.starts_at);
+    let slotTime;
+    
+    if (gameDay === 'special') {
+      // For special days, we need to get the special day date
+      const specialDays = getSpecialDaysInRange();
+      if (specialDays.length === 0) return false;
+      slotTime = new Date(specialDays[0].date); // Use the first special day
+    } else {
+      slotTime = getDateForDay(gameDay);
+    }
+    
     slotTime.setHours(parseInt(hours), parseInt(minutes));
     
-    // Update the date to match the selected day
-    const gameDate = new Date(selectedGame.starts_at);
-    const dayOfWeek = gameDate.getDay();
-    const targetDayOfWeek = gameDay === 'friday' ? 5 : gameDay === 'saturday' ? 6 : 0;
-    const daysDiff = targetDayOfWeek - dayOfWeek;
-    slotTime.setDate(slotTime.getDate() + daysDiff);
+    // Check if this is a blocked day (24/12, 25/12, 31/12)
+    if (isBlockedDay(slotTime)) {
+      return false;
+    }
     
     // Check if this time conflicts with any other game in the same arena
     const conflictingGame = allGames.find(game => {
@@ -207,20 +312,22 @@ const UserSchedulingPage: React.FC = () => {
     setSchedulingMode('schedule');
   };
 
-  const handleUpdateGameTime = async (newTime: string) => {
+  const handleUpdateGameTime = async (newTime: string, dayType?: 'friday' | 'saturday' | 'sunday' | 'special') => {
     if (!selectedGame) return;
     
     try {
       const [hours, minutes] = newTime.split(':');
-      const newDateTime = new Date(selectedGame.starts_at);
-      newDateTime.setHours(parseInt(hours), parseInt(minutes));
+      let newDateTime;
       
-      // Update the date to match the selected day
-      const gameDate = new Date(selectedGame.starts_at);
-      const dayOfWeek = gameDate.getDay();
-      const targetDayOfWeek = selectedDay === 'friday' ? 5 : selectedDay === 'saturday' ? 6 : 0;
-      const daysDiff = targetDayOfWeek - dayOfWeek;
-      newDateTime.setDate(newDateTime.getDate() + daysDiff);
+      if (dayType === 'special') {
+        const specialDays = getSpecialDaysInRange();
+        if (specialDays.length === 0) return;
+        newDateTime = new Date(specialDays[0].date);
+      } else {
+        newDateTime = getDateForDay(selectedDay);
+      }
+      
+      newDateTime.setHours(parseInt(hours), parseInt(minutes));
       
       await updateGameMutation.mutateAsync({
         gameId: selectedGame.id,
@@ -237,6 +344,28 @@ const UserSchedulingPage: React.FC = () => {
   const handleCancelScheduling = () => {
     setSchedulingMode('list');
     setSelectedGame(null);
+  };
+
+  // Check if all time slots are taken for the current weekend
+  const areAllSlotsTaken = () => {
+    const fridaySlots = ['19:45', '22:05'];
+    const saturdaySlots = ['11:00', '13:20', '15:40', '18:00'];
+    const sundaySlots = ['13:00', '15:20', '17:40'];
+    const specialSlots = ['11:00', '13:20', '15:40', '18:00'];
+    
+    const allSlots: Array<{ time: string; day: 'friday' | 'saturday' | 'sunday' | 'special' }> = [
+      ...fridaySlots.map(time => ({ time, day: 'friday' as const })),
+      ...saturdaySlots.map(time => ({ time, day: 'saturday' as const })),
+      ...sundaySlots.map(time => ({ time, day: 'sunday' as const }))
+    ];
+    
+    // Add special day slots if they exist
+    const specialDays = getSpecialDaysInRange();
+    if (specialDays.length > 0) {
+      allSlots.push(...specialSlots.map(time => ({ time, day: 'special' as const })));
+    }
+    
+    return allSlots.every(({ time, day }) => !isTimeSlotAvailable(time, day));
   };
 
   // Loading states
@@ -342,6 +471,33 @@ const UserSchedulingPage: React.FC = () => {
               <div className="time-selection">
                 <h3>Select Time</h3>
                 
+                {/* Week Navigation */}
+                <div className="week-navigation">
+                  <button
+                    className="week-nav-btn"
+                    onClick={() => setSelectedWeek(selectedWeek - 1)}
+                  >
+                    ← Previous Week
+                  </button>
+                  <div className="week-info">
+                    {(() => {
+                      const { friday, sunday } = getWeekendDates(selectedWeek);
+                      const formatDate = (date: Date) => {
+                        const day = date.getDate();
+                        const month = date.getMonth() + 1;
+                        return `${day}/${month}`;
+                      };
+                      return `${formatDate(friday)}-${formatDate(sunday)}`;
+                    })()}
+                  </div>
+                  <button
+                    className="week-nav-btn"
+                    onClick={() => setSelectedWeek(selectedWeek + 1)}
+                  >
+                    Next Week →
+                  </button>
+                </div>
+                
                 {/* Legend */}
                 <div className="time-legend">
                   <div className="legend-item">
@@ -356,32 +512,114 @@ const UserSchedulingPage: React.FC = () => {
                 
                 {/* Day Selection */}
                 <div className="day-selector">
+                  {/* Special Days */}
+                  {getSpecialDaysInRange().map((specialDay, index) => (
+                    <button
+                      key={`special-${index}`}
+                      className={`day-btn ${selectedDay === 'special' ? 'active' : ''} special-day`}
+                      onClick={() => setSelectedDay('special')}
+                    >
+                      {specialDay.name}
+                    </button>
+                  ))}
+                  
                   <button
-                    className={`day-btn ${selectedDay === 'friday' ? 'active' : ''} ${getGameDay(selectedGame) === 'friday' ? 'correct-day' : ''}`}
+                    className={`day-btn ${selectedDay === 'friday' ? 'active' : ''} ${getGameDay(selectedGame) === 'friday' ? 'correct-day' : ''} ${isBlockedDay(getDateForDay('friday')) ? 'blocked-day' : ''}`}
                     onClick={() => setSelectedDay('friday')}
+                    disabled={isBlockedDay(getDateForDay('friday'))}
                   >
-                    Friday {getGameDay(selectedGame) === 'friday' ? '(Game Day)' : ''}
+                    Friday {getGameDay(selectedGame) === 'friday' ? '(Game Day)' : ''} {isBlockedDay(getDateForDay('friday')) ? '(No Games)' : ''}
                   </button>
                   <button
-                    className={`day-btn ${selectedDay === 'saturday' ? 'active' : ''} ${getGameDay(selectedGame) === 'saturday' ? 'correct-day' : ''}`}
+                    className={`day-btn ${selectedDay === 'saturday' ? 'active' : ''} ${getGameDay(selectedGame) === 'saturday' ? 'correct-day' : ''} ${isBlockedDay(getDateForDay('saturday')) ? 'blocked-day' : ''}`}
                     onClick={() => setSelectedDay('saturday')}
+                    disabled={isBlockedDay(getDateForDay('saturday'))}
                   >
-                    Saturday {getGameDay(selectedGame) === 'saturday' ? '(Game Day)' : ''}
+                    Saturday {getGameDay(selectedGame) === 'saturday' ? '(Game Day)' : ''} {isBlockedDay(getDateForDay('saturday')) ? '(No Games)' : ''}
                   </button>
                   <button
-                    className={`day-btn ${selectedDay === 'sunday' ? 'active' : ''} ${getGameDay(selectedGame) === 'sunday' ? 'correct-day' : ''}`}
+                    className={`day-btn ${selectedDay === 'sunday' ? 'active' : ''} ${getGameDay(selectedGame) === 'sunday' ? 'correct-day' : ''} ${isBlockedDay(getDateForDay('sunday')) ? 'blocked-day' : ''}`}
                     onClick={() => setSelectedDay('sunday')}
+                    disabled={isBlockedDay(getDateForDay('sunday'))}
                   >
-                    Sunday {getGameDay(selectedGame) === 'sunday' ? '(Game Day)' : ''}
+                    Sunday {getGameDay(selectedGame) === 'sunday' ? '(Game Day)' : ''} {isBlockedDay(getDateForDay('sunday')) ? '(No Games)' : ''}
                   </button>
                 </div>
 
+                {/* All Slots Taken Message */}
+                {areAllSlotsTaken() && (
+                  <div className="all-slots-taken">
+                    <h4>All time slots are taken for this weekend</h4>
+                    <p>Try selecting a different week using the navigation above.</p>
+                  </div>
+                )}
+
+                {/* Blocked Days Message */}
+                {(() => {
+                  const fridayBlocked = isBlockedDay(getDateForDay('friday'));
+                  const saturdayBlocked = isBlockedDay(getDateForDay('saturday'));
+                  const sundayBlocked = isBlockedDay(getDateForDay('sunday'));
+                  const allDaysBlocked = fridayBlocked && saturdayBlocked && sundayBlocked;
+                  
+                  if (allDaysBlocked) {
+                    return (
+                      <div className="all-slots-taken">
+                        <h4>No games allowed on this weekend</h4>
+                        <p>Games are not allowed on Christmas Eve (24/12), Christmas Day (25/12), or New Year's Eve (31/12).</p>
+                      </div>
+                    );
+                  }
+                  
+                  if (fridayBlocked || saturdayBlocked || sundayBlocked) {
+                    const blockedDays = [];
+                    if (fridayBlocked) blockedDays.push('Friday');
+                    if (saturdayBlocked) blockedDays.push('Saturday');
+                    if (sundayBlocked) blockedDays.push('Sunday');
+                    
+                    return (
+                      <div className="blocked-days-info">
+                        <h4>Some days are blocked</h4>
+                        <p>No games allowed on: {blockedDays.join(', ')}</p>
+                      </div>
+                    );
+                  }
+                  
+                  return null;
+                })()}
+
                 <div className="time-slots">
+                  {/* Special Days Section */}
+                  {getSpecialDaysInRange().map((specialDay, index) => (
+                    <div key={index} className={`day-section ${selectedDay === 'special' ? 'active' : 'disabled'}`}>
+                      <h4>{specialDay.name}</h4>
+                      <div className="time-grid">
+                        {['11:00', '13:20', '15:40', '18:00'].map(time => {
+                          const isAvailable = selectedDay === 'special' && isTimeSlotAvailable(time, 'special');
+                          const isOccupied = selectedDay === 'special' && !isTimeSlotAvailable(time, 'special');
+                          
+                          // Hide occupied time slots
+                          if (isOccupied) return null;
+                          
+                          return (
+                            <button
+                              key={time}
+                              className={`time-slot ${!isAvailable ? 'disabled' : ''}`}
+                              onClick={() => isAvailable && handleUpdateGameTime(time, 'special')}
+                              disabled={!isAvailable}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
                   {/* Friday Section */}
                   <div className={`day-section ${selectedDay === 'friday' ? 'active' : 'disabled'}`}>
                     <h4>Friday (19:45 - 22:30)</h4>
                     <div className="time-grid">
-                      {['19:45', '20:00', '20:15', '20:30', '20:45', '21:00', '21:15', '21:30', '21:45', '22:00', '22:15'].map(time => {
+                      {['19:45', '22:05'].map(time => {
                         const isAvailable = selectedDay === 'friday' && isTimeSlotAvailable(time, 'friday');
                         const isOccupied = selectedDay === 'friday' && !isTimeSlotAvailable(time, 'friday');
                         
@@ -401,12 +639,12 @@ const UserSchedulingPage: React.FC = () => {
                       })}
                     </div>
                   </div>
-                  
+
                   {/* Saturday Section */}
                   <div className={`day-section ${selectedDay === 'saturday' ? 'active' : 'disabled'}`}>
                     <h4>Saturday (11:00 - 19:30)</h4>
                     <div className="time-grid">
-                      {['11:00', '11:15', '11:30', '11:45', '12:00', '12:15', '12:30', '12:45', '13:00', '13:15', '13:30', '13:45', '14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45', '16:00', '16:15', '16:30', '16:45', '17:00', '17:15', '17:30', '17:45', '18:00', '18:15', '18:30', '18:45', '19:00', '19:15'].map(time => {
+                      {['11:00', '13:20', '15:40', '18:00'].map(time => {
                         const isAvailable = selectedDay === 'saturday' && isTimeSlotAvailable(time, 'saturday');
                         const isOccupied = selectedDay === 'saturday' && !isTimeSlotAvailable(time, 'saturday');
                         
@@ -426,12 +664,12 @@ const UserSchedulingPage: React.FC = () => {
                       })}
                     </div>
                   </div>
-                  
+
                   {/* Sunday Section */}
                   <div className={`day-section ${selectedDay === 'sunday' ? 'active' : 'disabled'}`}>
                     <h4>Sunday (13:00 - 19:30)</h4>
                     <div className="time-grid">
-                      {['13:00', '13:15', '13:30', '13:45', '14:00', '14:15', '14:30', '14:45', '15:00', '15:15', '15:30', '15:45', '16:00', '16:15', '16:30', '16:45', '17:00', '17:15', '17:30', '17:45', '18:00', '18:15', '18:30', '18:45', '19:00', '19:15'].map(time => {
+                      {['13:00', '15:20', '17:40'].map(time => {
                         const isAvailable = selectedDay === 'sunday' && isTimeSlotAvailable(time, 'sunday');
                         const isOccupied = selectedDay === 'sunday' && !isTimeSlotAvailable(time, 'sunday');
                         
