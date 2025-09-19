@@ -11,6 +11,8 @@ const UserSchedulingPage: React.FC = () => {
   const [schedulingMode, setSchedulingMode] = useState<'list' | 'schedule'>('list');
   const [selectedDay, setSelectedDay] = useState<'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' | 'special'>('friday');
   const [selectedWeek, setSelectedWeek] = useState<number>(0); // 0 = current week, -1 = previous week, 1 = next week
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const queryClient = useQueryClient();
 
   // First, fetch all seasons to get leagues from each season
@@ -393,6 +395,88 @@ const UserSchedulingPage: React.FC = () => {
     return allSlots.every(({ time, day }) => !isTimeSlotAvailable(time, day));
   };
 
+  // Calendar view helper functions
+  const getDaysWithGames = (startDate: Date) => {
+    if (!user?.team_id || !userArena) return [];
+    
+    // Get all unique dates that have games for this team
+    const gameDates = new Set<string>();
+    teamGames.forEach(game => {
+      const gameDate = new Date(game.starts_at).toISOString().split('T')[0];
+      gameDates.add(gameDate);
+    });
+    
+    // Convert to sorted array of Date objects
+    const sortedDates = Array.from(gameDates)
+      .map(dateStr => new Date(dateStr))
+      .sort((a, b) => a.getTime() - b.getTime());
+    
+    // Find dates around the current date
+    const currentDateStr = startDate.toISOString().split('T')[0];
+    const currentIndex = sortedDates.findIndex(date => 
+      date.toISOString().split('T')[0] === currentDateStr
+    );
+    
+    if (currentIndex === -1) {
+      // If current date has no games, find the closest date with games
+      const closestDate = sortedDates.find(date => date >= startDate) || 
+                         sortedDates[sortedDates.length - 1];
+      if (closestDate) {
+        const closestIndex = sortedDates.indexOf(closestDate);
+        const startIndex = Math.max(0, closestIndex - 5);
+        const endIndex = Math.min(sortedDates.length, startIndex + 10);
+        return sortedDates.slice(startIndex, endIndex);
+      }
+      return [];
+    }
+    
+    // Get 10 days around the current date
+    const startIndex = Math.max(0, currentIndex - 5);
+    const endIndex = Math.min(sortedDates.length, startIndex + 10);
+    return sortedDates.slice(startIndex, endIndex);
+  };
+
+  const getGamesForDate = (date: Date) => {
+    if (!user?.team_id || !userArena) return [];
+    const dateStr = date.toISOString().split('T')[0];
+    return teamGames.filter(game => {
+      const gameDate = new Date(game.starts_at).toISOString().split('T')[0];
+      return gameDate === dateStr;
+    });
+  };
+
+  const formatTime = (dateTime: string) => {
+    return new Date(dateTime).toLocaleTimeString('sv-SE', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('sv-SE', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const navigateDays = (direction: 'prev' | 'next') => {
+    const daysWithGames = getDaysWithGames(currentDate);
+    if (daysWithGames.length === 0) return;
+    
+    const currentIndex = daysWithGames.findIndex(date => 
+      date.toISOString().split('T')[0] === currentDate.toISOString().split('T')[0]
+    );
+    
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'next' 
+      ? Math.min(daysWithGames.length - 1, currentIndex + 10)
+      : Math.max(0, currentIndex - 10);
+    
+    setCurrentDate(daysWithGames[newIndex]);
+  };
+
   // Loading states
   if (seasonsLoading || leaguesLoading || userTeamLoading || userClubLoading || userArenaLoading) {
     return <div className="loading">Loading your team information...</div>;
@@ -440,7 +524,85 @@ const UserSchedulingPage: React.FC = () => {
         </div>
       </div>
 
-      {schedulingMode === 'list' ? (
+      {/* View Toggle */}
+      <div className="view-toggle">
+        <button
+          className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setViewMode('calendar')}
+        >
+          Calendar View
+        </button>
+        <button
+          className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setViewMode('list')}
+        >
+          List View
+        </button>
+      </div>
+
+      {/* Calendar View */}
+      {viewMode === 'calendar' && (
+        <div className="calendar-view">
+          <div className="calendar-header">
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => navigateDays('prev')}
+            >
+              ← Previous 10 Days
+            </button>
+            <h3>
+              Your Games - {currentDate.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })}
+            </h3>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => navigateDays('next')}
+            >
+              Next 10 Days →
+            </button>
+          </div>
+          
+          <div className="calendar-grid">
+            {getDaysWithGames(currentDate).map((date) => {
+              const games = getGamesForDate(date);
+              return (
+                <div key={date.toISOString()} className="calendar-day">
+                  <div className="day-header">
+                    <h4>{formatDate(date)}</h4>
+                    <span className="game-count">{games.length} game{games.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="day-games">
+                    {games.map((game) => (
+                      <div
+                        key={game.id}
+                        className="calendar-game"
+                        onClick={() => handleScheduleGame(game)}
+                        title="Click to schedule this game"
+                      >
+                        <div className="game-time">{formatTime(game.starts_at)}</div>
+                        <div className="game-teams">
+                          {getTeamName(game.home_team_id)} vs {getTeamName(game.away_team_id)}
+                        </div>
+                        <div className="game-details">
+                          {game.ice_time}min
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {getDaysWithGames(currentDate).length === 0 && (
+            <div className="no-games">
+              <p>No games found for your team.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && schedulingMode === 'list' && (
         <div className="games-section">
           <h2>Your Team's Games</h2>
           <p>Click on a game to schedule or reschedule it</p>
@@ -477,7 +639,10 @@ const UserSchedulingPage: React.FC = () => {
             </div>
           )}
         </div>
-      ) : (
+      )}
+
+      {/* Scheduling Interface */}
+      {schedulingMode === 'schedule' && (
         <div className="scheduling-interface">
           <h2>Schedule Game</h2>
           {selectedGame && (
