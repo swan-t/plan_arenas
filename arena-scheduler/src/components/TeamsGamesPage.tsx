@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { teamsApi, gamesApi, seasonsApi, leaguesApi, clubsApi, arenasApi } from '@/services/api';
 import type { Team, Game, CreateTeamData, CreateGameData } from '@/types';
@@ -42,6 +42,17 @@ const TeamsGamesPage: React.FC = () => {
     queryFn: seasonsApi.getAll,
   });
 
+  // Auto-select current season when seasons are loaded
+  useEffect(() => {
+    if (seasons.length > 0 && !selectedSeasonId) {
+      // Auto-select the most recent season (last in the array)
+      const currentSeason = seasons[seasons.length - 1];
+      if (currentSeason) {
+        setSelectedSeasonId(currentSeason.id);
+      }
+    }
+  }, [seasons, selectedSeasonId]);
+
   const {
     data: leagues = [],
   } = useQuery({
@@ -49,6 +60,16 @@ const TeamsGamesPage: React.FC = () => {
     queryFn: () => selectedSeasonId ? leaguesApi.getBySeason(selectedSeasonId) : Promise.resolve([]),
     enabled: !!selectedSeasonId,
   });
+
+  // Auto-set ice time to league's default when league is selected
+  useEffect(() => {
+    if (selectedLeagueId && leagues.length > 0) {
+      const selectedLeague = leagues.find(league => league.id === selectedLeagueId);
+      if (selectedLeague && selectedLeague.default_ice_time) {
+        setNewGameIceTime(selectedLeague.default_ice_time);
+      }
+    }
+  }, [selectedLeagueId, leagues]);
 
   const {
     data: clubs = [],
@@ -125,7 +146,17 @@ const TeamsGamesPage: React.FC = () => {
       setNewGameAwayTeamId('');
       setNewGameArenaId('');
       setNewGameStartsAt('');
-      setNewGameIceTime(140);
+      // Reset ice time to the league's default
+      if (selectedLeagueId && leagues.length > 0) {
+        const selectedLeague = leagues.find(league => league.id === selectedLeagueId);
+        if (selectedLeague && selectedLeague.default_ice_time) {
+          setNewGameIceTime(selectedLeague.default_ice_time);
+        } else {
+          setNewGameIceTime(140); // fallback
+        }
+      } else {
+        setNewGameIceTime(140); // fallback
+      }
     },
   });
 
@@ -249,6 +280,11 @@ const TeamsGamesPage: React.FC = () => {
 
   // Helper functions
 
+  const getSeasonName = (seasonId: number) => {
+    const season = seasons.find(s => s.id === seasonId);
+    return season ? season.name : `Season ${seasonId}`;
+  };
+
   const getLeagueName = (leagueId: number) => {
     const league = leagues.find(l => l.id === leagueId);
     return league ? league.name : `League ${leagueId}`;
@@ -325,12 +361,19 @@ const TeamsGamesPage: React.FC = () => {
               className="season-select"
             >
               <option value="">Choose a season</option>
-              {seasons.map((season) => (
+              {seasons.map((season, index) => (
                 <option key={season.id} value={season.id}>
-                  {season.name}
+                  {season.name} {index === seasons.length - 1 ? '(Current)' : ''}
                 </option>
               ))}
             </select>
+            {selectedSeasonId && (
+              <div className="season-info">
+                <span className="current-season-indicator">
+                  ✓ Currently managing: {getSeasonName(selectedSeasonId)}
+                </span>
+              </div>
+            )}
           </div>
           <div className="form-group">
             <label htmlFor="leagueSelect">League:</label>
@@ -661,6 +704,7 @@ const TeamsGamesPage: React.FC = () => {
                       required
                     >
                       <option value="">Select ice time</option>
+                      <option value="75">75 minutes (1h 15m)</option>
                       <option value="90">90 minutes (1h 30m)</option>
                       <option value="100">100 minutes (1h 40m)</option>
                       <option value="120">120 minutes (2h 00m)</option>
@@ -755,6 +799,7 @@ const TeamsGamesPage: React.FC = () => {
                             required
                           >
                             <option value="">Select ice time</option>
+                            <option value="75">75 min (1h 15m)</option>
                             <option value="90">90 min (1h 30m)</option>
                             <option value="100">100 min (1h 40m)</option>
                             <option value="120">120 min (2h 00m)</option>

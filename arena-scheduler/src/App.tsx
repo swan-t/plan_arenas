@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProvider, useUser } from '@/contexts/UserContext';
 import LoginPage from '@/components/LoginPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -25,6 +25,13 @@ sessionManager.initializeSession();
 const AppContent: React.FC = () => {
   const { isAuthenticated, isAdmin, user, logout, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState<'setup' | 'teams-games' | 'scheduling'>('setup');
+
+  // Auto-navigate to scheduling page for regular users
+  useEffect(() => {
+    if (isAuthenticated && !isAdmin) {
+      setCurrentPage('scheduling');
+    }
+  }, [isAuthenticated, isAdmin]);
 
   if (isLoading) {
     return (

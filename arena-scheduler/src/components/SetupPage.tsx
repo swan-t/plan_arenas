@@ -49,6 +49,17 @@ const SetupPage: React.FC = () => {
     queryFn: seasonsApi.getAll,
   });
 
+  // Auto-select current season when seasons are loaded
+  React.useEffect(() => {
+    if (seasons.length > 0 && !selectedSeasonId) {
+      // Auto-select the most recent season (last in the array)
+      const currentSeason = seasons[seasons.length - 1];
+      if (currentSeason) {
+        setSelectedSeasonId(currentSeason.id);
+      }
+    }
+  }, [seasons, selectedSeasonId]);
+
   const {
     data: arenas = [],
     isLoading: arenasLoading,
@@ -737,12 +748,19 @@ const SetupPage: React.FC = () => {
                 className="season-select"
               >
                 <option value="">Choose a season to manage leagues</option>
-                {seasons.map((season) => (
+                {seasons.map((season, index) => (
                   <option key={season.id} value={season.id}>
-                    {season.name}
+                    {season.name} {index === seasons.length - 1 ? '(Current)' : ''}
                   </option>
                 ))}
               </select>
+              {selectedSeasonId && (
+                <div className="season-info">
+                  <span className="current-season-indicator">
+                    ✓ Currently managing: {getSeasonName(selectedSeasonId)}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -785,6 +803,7 @@ const SetupPage: React.FC = () => {
                   required
                 >
                   <option value="">Select ice time</option>
+                  <option value="75">75 minutes (1h 15m)</option>
                   <option value="90">90 minutes (1h 30m)</option>
                   <option value="100">100 minutes (1h 40m)</option>
                   <option value="120">120 minutes (2h 00m)</option>
@@ -860,6 +879,7 @@ const SetupPage: React.FC = () => {
                         required
                       >
                         <option value="">Select ice time</option>
+                        <option value="75">75 min (1h 15m)</option>
                         <option value="90">90 min (1h 30m)</option>
                         <option value="100">100 min (1h 40m)</option>
                         <option value="120">120 min (2h 00m)</option>

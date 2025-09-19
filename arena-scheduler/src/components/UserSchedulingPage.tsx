@@ -9,7 +9,7 @@ const UserSchedulingPage: React.FC = () => {
   const [selectedArenaId, setSelectedArenaId] = useState<number | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [schedulingMode, setSchedulingMode] = useState<'list' | 'schedule'>('list');
-  const [selectedDay, setSelectedDay] = useState<'friday' | 'saturday' | 'sunday' | 'special'>('friday');
+  const [selectedDay, setSelectedDay] = useState<'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' | 'special'>('friday');
   const [selectedWeek, setSelectedWeek] = useState<number>(0); // 0 = current week, -1 = previous week, 1 = next week
   const queryClient = useQueryClient();
 
@@ -127,7 +127,7 @@ const UserSchedulingPage: React.FC = () => {
       await gamesApi.update(gameId, updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['games', user?.team_id] });
+      queryClient.invalidateQueries({ queryKey: ['all-games', userArena?.id] });
     },
   });
 
@@ -156,15 +156,17 @@ const UserSchedulingPage: React.FC = () => {
   };
 
   // Get the day of the week for a game
-  const getGameDay = (game: Game): 'friday' | 'saturday' | 'sunday' => {
+  const getGameDay = (game: Game): 'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' => {
     const gameDate = new Date(game.starts_at);
     const dayOfWeek = gameDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     
+    if (dayOfWeek === 1) return 'monday';
+    if (dayOfWeek === 3) return 'wednesday';
     if (dayOfWeek === 5) return 'friday';
     if (dayOfWeek === 6) return 'saturday';
     if (dayOfWeek === 0) return 'sunday';
     
-    // Default to friday if it's not a weekend day
+    // Default to friday if it's not a recognized day
     return 'friday';
   };
 
@@ -246,13 +248,28 @@ const UserSchedulingPage: React.FC = () => {
   };
 
   // Get the date for a specific day in the selected week
-  const getDateForDay = (day: 'friday' | 'saturday' | 'sunday' | 'special') => {
+  const getDateForDay = (day: 'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' | 'special') => {
     if (day === 'special') {
       const specialDays = getSpecialDaysInRange();
       return specialDays.length > 0 ? specialDays[0].date : new Date();
     }
     const { friday, saturday, sunday } = getWeekendDates(selectedWeek);
-    return day === 'friday' ? friday : day === 'saturday' ? saturday : sunday;
+    
+    if (day === 'friday') return friday;
+    if (day === 'saturday') return saturday;
+    if (day === 'sunday') return sunday;
+    if (day === 'monday') {
+      const monday = new Date(friday);
+      monday.setDate(friday.getDate() - 4); // Monday is 4 days before Friday
+      return monday;
+    }
+    if (day === 'wednesday') {
+      const wednesday = new Date(friday);
+      wednesday.setDate(friday.getDate() - 2); // Wednesday is 2 days before Friday
+      return wednesday;
+    }
+    
+    return friday; // fallback
   };
 
   // Check if a date is a blocked day (24/12, 25/12, 31/12)
@@ -265,7 +282,7 @@ const UserSchedulingPage: React.FC = () => {
   };
 
   // Check if a time slot is available (not conflicting with other games)
-  const isTimeSlotAvailable = (time: string, gameDay: 'friday' | 'saturday' | 'sunday' | 'special') => {
+  const isTimeSlotAvailable = (time: string, gameDay: 'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' | 'special') => {
     if (!selectedGame || !userArena) return true;
     
     const [hours, minutes] = time.split(':');
@@ -312,7 +329,7 @@ const UserSchedulingPage: React.FC = () => {
     setSchedulingMode('schedule');
   };
 
-  const handleUpdateGameTime = async (newTime: string, dayType?: 'friday' | 'saturday' | 'sunday' | 'special') => {
+  const handleUpdateGameTime = async (newTime: string, dayType?: 'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' | 'special') => {
     if (!selectedGame) return;
     
     try {
@@ -352,8 +369,10 @@ const UserSchedulingPage: React.FC = () => {
     const saturdaySlots = ['11:00', '13:20', '15:40', '18:00'];
     const sundaySlots = ['13:00', '15:20', '17:40'];
     const specialSlots = ['11:00', '13:20', '15:40', '18:00'];
+    const mondaySlots = ['21:15'];
+    const wednesdaySlots = ['21:15'];
     
-    const allSlots: Array<{ time: string; day: 'friday' | 'saturday' | 'sunday' | 'special' }> = [
+    const allSlots: Array<{ time: string; day: 'friday' | 'saturday' | 'sunday' | 'monday' | 'wednesday' | 'special' }> = [
       ...fridaySlots.map(time => ({ time, day: 'friday' as const })),
       ...saturdaySlots.map(time => ({ time, day: 'saturday' as const })),
       ...sundaySlots.map(time => ({ time, day: 'sunday' as const }))
@@ -363,6 +382,12 @@ const UserSchedulingPage: React.FC = () => {
     const specialDays = getSpecialDaysInRange();
     if (specialDays.length > 0) {
       allSlots.push(...specialSlots.map(time => ({ time, day: 'special' as const })));
+    }
+    
+    // Add Monday and Wednesday slots if ice time is 75 minutes
+    if (selectedGame && selectedGame.ice_time === 75) {
+      allSlots.push(...mondaySlots.map(time => ({ time, day: 'monday' as const })));
+      allSlots.push(...wednesdaySlots.map(time => ({ time, day: 'wednesday' as const })));
     }
     
     return allSlots.every(({ time, day }) => !isTimeSlotAvailable(time, day));
@@ -523,6 +548,26 @@ const UserSchedulingPage: React.FC = () => {
                     </button>
                   ))}
                   
+                  {/* Monday and Wednesday - only show for 75-minute games */}
+                  {selectedGame && selectedGame.ice_time === 75 && (
+                    <>
+                      <button
+                        className={`day-btn ${selectedDay === 'monday' ? 'active' : ''} ${getGameDay(selectedGame) === 'monday' ? 'correct-day' : ''} ${isBlockedDay(getDateForDay('monday')) ? 'blocked-day' : ''}`}
+                        onClick={() => setSelectedDay('monday')}
+                        disabled={isBlockedDay(getDateForDay('monday'))}
+                      >
+                        Monday {getGameDay(selectedGame) === 'monday' ? '(Game Day)' : ''} {isBlockedDay(getDateForDay('monday')) ? '(No Games)' : ''}
+                      </button>
+                      <button
+                        className={`day-btn ${selectedDay === 'wednesday' ? 'active' : ''} ${getGameDay(selectedGame) === 'wednesday' ? 'correct-day' : ''} ${isBlockedDay(getDateForDay('wednesday')) ? 'blocked-day' : ''}`}
+                        onClick={() => setSelectedDay('wednesday')}
+                        disabled={isBlockedDay(getDateForDay('wednesday'))}
+                      >
+                        Wednesday {getGameDay(selectedGame) === 'wednesday' ? '(Game Day)' : ''} {isBlockedDay(getDateForDay('wednesday')) ? '(No Games)' : ''}
+                      </button>
+                    </>
+                  )}
+                  
                   <button
                     className={`day-btn ${selectedDay === 'friday' ? 'active' : ''} ${getGameDay(selectedGame) === 'friday' ? 'correct-day' : ''} ${isBlockedDay(getDateForDay('friday')) ? 'blocked-day' : ''}`}
                     onClick={() => setSelectedDay('friday')}
@@ -614,6 +659,60 @@ const UserSchedulingPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+
+                  {/* Monday Section - only show for 75-minute games */}
+                  {selectedGame && selectedGame.ice_time === 75 && (
+                    <div className={`day-section ${selectedDay === 'monday' ? 'active' : 'disabled'}`}>
+                      <h4>Monday (21:15)</h4>
+                      <div className="time-grid">
+                        {['21:15'].map(time => {
+                          const isAvailable = selectedDay === 'monday' && isTimeSlotAvailable(time, 'monday');
+                          const isOccupied = selectedDay === 'monday' && !isTimeSlotAvailable(time, 'monday');
+                          
+                          // Hide occupied time slots
+                          if (isOccupied) return null;
+                          
+                          return (
+                            <button
+                              key={time}
+                              className={`time-slot ${!isAvailable ? 'disabled' : ''}`}
+                              onClick={() => isAvailable && handleUpdateGameTime(time, 'monday')}
+                              disabled={!isAvailable}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Wednesday Section - only show for 75-minute games */}
+                  {selectedGame && selectedGame.ice_time === 75 && (
+                    <div className={`day-section ${selectedDay === 'wednesday' ? 'active' : 'disabled'}`}>
+                      <h4>Wednesday (21:15)</h4>
+                      <div className="time-grid">
+                        {['21:15'].map(time => {
+                          const isAvailable = selectedDay === 'wednesday' && isTimeSlotAvailable(time, 'wednesday');
+                          const isOccupied = selectedDay === 'wednesday' && !isTimeSlotAvailable(time, 'wednesday');
+                          
+                          // Hide occupied time slots
+                          if (isOccupied) return null;
+                          
+                          return (
+                            <button
+                              key={time}
+                              className={`time-slot ${!isAvailable ? 'disabled' : ''}`}
+                              onClick={() => isAvailable && handleUpdateGameTime(time, 'wednesday')}
+                              disabled={!isAvailable}
+                            >
+                              {time}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Friday Section */}
                   <div className={`day-section ${selectedDay === 'friday' ? 'active' : 'disabled'}`}>
