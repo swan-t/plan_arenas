@@ -25,12 +25,16 @@ const TeamsGamesPage: React.FC = () => {
   const [newGameArenaId, setNewGameArenaId] = useState<number | ''>('');
   const [newGameStartsAt, setNewGameStartsAt] = useState('');
   const [newGameIceTime, setNewGameIceTime] = useState<number | ''>(140);
+  const [showCustomIceTime, setShowCustomIceTime] = useState(false);
+  const [customIceTime, setCustomIceTime] = useState<number | ''>('');
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [editGameHomeTeamId, setEditGameHomeTeamId] = useState<number | ''>('');
   const [editGameAwayTeamId, setEditGameAwayTeamId] = useState<number | ''>('');
   const [editGameArenaId, setEditGameArenaId] = useState<number | ''>('');
   const [editGameStartsAt, setEditGameStartsAt] = useState('');
   const [editGameIceTime, setEditGameIceTime] = useState<number | ''>('');
+  const [showEditCustomIceTime, setShowEditCustomIceTime] = useState(false);
+  const [editCustomIceTime, setEditCustomIceTime] = useState<number | ''>('');
 
   const queryClient = useQueryClient();
 
@@ -146,6 +150,8 @@ const TeamsGamesPage: React.FC = () => {
       setNewGameAwayTeamId('');
       setNewGameArenaId('');
       setNewGameStartsAt('');
+      setShowCustomIceTime(false);
+      setCustomIceTime('');
       // Reset ice time to the league's default
       if (selectedLeagueId && leagues.length > 0) {
         const selectedLeague = leagues.find(league => league.id === selectedLeagueId);
@@ -171,6 +177,8 @@ const TeamsGamesPage: React.FC = () => {
       setEditGameArenaId('');
       setEditGameStartsAt('');
       setEditGameIceTime('');
+      setShowEditCustomIceTime(false);
+      setEditCustomIceTime('');
     },
   });
 
@@ -227,7 +235,8 @@ const TeamsGamesPage: React.FC = () => {
 
   const handleCreateGame = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newGameHomeTeamId && newGameAwayTeamId && selectedLeagueId && newGameArenaId && newGameStartsAt && newGameIceTime) {
+    const iceTime = showCustomIceTime ? customIceTime : newGameIceTime;
+    if (newGameHomeTeamId && newGameAwayTeamId && selectedLeagueId && newGameArenaId && newGameStartsAt && iceTime) {
       // Add default time (8:00 AM) to the date
       const startsAtWithTime = `${newGameStartsAt}T08:00:00`;
       
@@ -237,7 +246,7 @@ const TeamsGamesPage: React.FC = () => {
         league_id: selectedLeagueId,
         arena_id: Number(newGameArenaId),
         starts_at: startsAtWithTime,
-        ice_time: Number(newGameIceTime),
+        ice_time: Number(iceTime),
       });
     }
   };
@@ -250,11 +259,21 @@ const TeamsGamesPage: React.FC = () => {
     // Extract just the date part from the datetime
     setEditGameStartsAt(game.starts_at.split('T')[0]);
     setEditGameIceTime(game.ice_time);
+    // Check if ice time is custom (not in standard options)
+    const standardTimes = [75, 90, 100, 120, 140];
+    if (standardTimes.includes(game.ice_time)) {
+      setShowEditCustomIceTime(false);
+      setEditCustomIceTime('');
+    } else {
+      setShowEditCustomIceTime(true);
+      setEditCustomIceTime(game.ice_time);
+    }
   };
 
   const handleUpdateGame = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingGame && editGameHomeTeamId && editGameAwayTeamId && selectedLeagueId && editGameArenaId && editGameStartsAt && editGameIceTime) {
+    const iceTime = showEditCustomIceTime ? editCustomIceTime : editGameIceTime;
+    if (editingGame && editGameHomeTeamId && editGameAwayTeamId && selectedLeagueId && editGameArenaId && editGameStartsAt && iceTime) {
       // Add default time (8:00 AM) to the date
       const startsAtWithTime = `${editGameStartsAt}T08:00:00`;
       
@@ -266,7 +285,7 @@ const TeamsGamesPage: React.FC = () => {
           league_id: selectedLeagueId,
           arena_id: Number(editGameArenaId),
           starts_at: startsAtWithTime,
-          ice_time: Number(editGameIceTime),
+          ice_time: Number(iceTime),
         },
       });
     }
@@ -702,6 +721,7 @@ const TeamsGamesPage: React.FC = () => {
                       value={newGameIceTime}
                       onChange={(e) => setNewGameIceTime(Number(e.target.value))}
                       required
+                      disabled={showCustomIceTime}
                     >
                       <option value="">Select ice time</option>
                       <option value="75">75 minutes (1h 15m)</option>
@@ -710,6 +730,35 @@ const TeamsGamesPage: React.FC = () => {
                       <option value="120">120 minutes (2h 00m)</option>
                       <option value="140">140 minutes (2h 20m)</option>
                     </select>
+                    <div className="custom-ice-time-section">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-link"
+                        onClick={() => {
+                          setShowCustomIceTime(!showCustomIceTime);
+                          if (!showCustomIceTime) {
+                            setCustomIceTime('');
+                          }
+                        }}
+                      >
+                        {showCustomIceTime ? 'Use standard times' : 'Manually set ice time'}
+                      </button>
+                      {showCustomIceTime && (
+                        <div className="custom-ice-time-input">
+                          <input
+                            type="number"
+                            value={customIceTime}
+                            onChange={(e) => setCustomIceTime(Number(e.target.value))}
+                            placeholder="Enter minutes (e.g., 240)"
+                            min="1"
+                            max="480"
+                            required
+                            className="custom-input"
+                          />
+                          <span className="input-help">minutes</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="form-actions">
@@ -797,6 +846,7 @@ const TeamsGamesPage: React.FC = () => {
                             onChange={(e) => setEditGameIceTime(Number(e.target.value))}
                             className="edit-select"
                             required
+                            disabled={showEditCustomIceTime}
                           >
                             <option value="">Select ice time</option>
                             <option value="75">75 min (1h 15m)</option>
@@ -805,6 +855,35 @@ const TeamsGamesPage: React.FC = () => {
                             <option value="120">120 min (2h 00m)</option>
                             <option value="140">140 min (2h 20m)</option>
                           </select>
+                          <div className="custom-ice-time-section">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link"
+                              onClick={() => {
+                                setShowEditCustomIceTime(!showEditCustomIceTime);
+                                if (!showEditCustomIceTime) {
+                                  setEditCustomIceTime('');
+                                }
+                              }}
+                            >
+                              {showEditCustomIceTime ? 'Use standard times' : 'Manually set ice time'}
+                            </button>
+                            {showEditCustomIceTime && (
+                              <div className="custom-ice-time-input">
+                                <input
+                                  type="number"
+                                  value={editCustomIceTime}
+                                  onChange={(e) => setEditCustomIceTime(Number(e.target.value))}
+                                  placeholder="Enter minutes (e.g., 240)"
+                                  min="1"
+                                  max="480"
+                                  required
+                                  className="custom-input"
+                                />
+                                <span className="input-help">minutes</span>
+                              </div>
+                            )}
+                          </div>
                           <div className="edit-actions">
                             <button type="submit" className="btn btn-sm btn-primary" disabled={updateGameMutation.isPending}>
                               {updateGameMutation.isPending ? 'Saving...' : 'Save'}
