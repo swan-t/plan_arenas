@@ -7,6 +7,7 @@ import SetupPage from '@/components/SetupPage';
 import TeamsGamesPage from '@/components/TeamsGamesPage';
 import SchedulingPage from '@/components/SchedulingPage';
 import UserSchedulingPage from '@/components/UserSchedulingPage';
+import TeamSelectionPage from '@/components/TeamSelectionPage';
 import { sessionManager } from '@/services/api';
 import './index.css';
 
@@ -23,7 +24,7 @@ const queryClient = new QueryClient({
 sessionManager.initializeSession();
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isAdmin, user, logout, isLoading } = useUser();
+  const { isAuthenticated, isAdmin, user, selectedTeam, hasMultipleTeams, logout, isLoading } = useUser();
   const [currentPage, setCurrentPage] = useState<'setup' | 'teams-games' | 'scheduling'>('setup');
 
   // Auto-navigate to scheduling page for regular users
@@ -43,6 +44,11 @@ const AppContent: React.FC = () => {
 
   if (!isAuthenticated) {
     return <LoginPage />;
+  }
+
+  // Show team selection for regular users with multiple teams
+  if (!isAdmin && hasMultipleTeams && !selectedTeam) {
+    return <TeamSelectionPage />;
   }
 
   return (

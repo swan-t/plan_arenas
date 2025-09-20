@@ -5,7 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Game } from '@/types';
 
 const UserSchedulingPage: React.FC = () => {
-  const { user } = useUser();
+  const { selectedTeam } = useUser();
   const [selectedArenaId, setSelectedArenaId] = useState<number | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [schedulingMode, setSchedulingMode] = useState<'list' | 'schedule'>('list');
@@ -30,7 +30,6 @@ const UserSchedulingPage: React.FC = () => {
 
   // Fetch leagues for the current season
   const {
-    data: leagues = [],
     isLoading: leaguesLoading,
     error: leaguesError,
   } = useQuery({
@@ -39,32 +38,8 @@ const UserSchedulingPage: React.FC = () => {
     enabled: !!currentSeason?.id,
   });
 
-  // Fetch user's team by getting all teams from all leagues and finding the user's team
-  const {
-    data: userTeam,
-    isLoading: userTeamLoading,
-    error: userTeamError,
-  } = useQuery({
-    queryKey: ['user-team', user?.team_id, leagues],
-    queryFn: async () => {
-      if (!user?.team_id || leagues.length === 0) return null;
-      
-      // Fetch teams from all leagues and find the user's team
-      for (const league of leagues) {
-        try {
-          const teams = await nestedApi.getLeagueTeams(league.id);
-          const foundTeam = teams.find((team: any) => team.id === user.team_id);
-          if (foundTeam) {
-            return foundTeam;
-          }
-        } catch (error) {
-          console.warn(`Failed to fetch teams for league ${league.id}:`, error);
-        }
-      }
-      return null;
-    },
-    enabled: !!user?.team_id && leagues.length > 0,
-  });
+  // Use the selected team directly
+  const userTeam = selectedTeam;
 
   // Fetch user's club
   const {
@@ -119,7 +94,7 @@ const UserSchedulingPage: React.FC = () => {
 
   // Filter games for this team in the selected arena
   const teamGames = allGames.filter(game => 
-    (game.home_team_id === user?.team_id || game.away_team_id === user?.team_id) &&
+    (game.home_team_id === selectedTeam?.id || game.away_team_id === selectedTeam?.id) &&
     game.arena_id === userArena?.id
   );
 
@@ -397,7 +372,7 @@ const UserSchedulingPage: React.FC = () => {
 
   // Calendar view helper functions
   const getDaysWithGames = (startDate: Date) => {
-    if (!user?.team_id || !userArena) return [];
+    if (!selectedTeam?.id || !userArena) return [];
     
     // Get all unique dates that have games for this team
     const gameDates = new Set<string>();
@@ -437,7 +412,7 @@ const UserSchedulingPage: React.FC = () => {
   };
 
   const getGamesForDate = (date: Date) => {
-    if (!user?.team_id || !userArena) return [];
+    if (!selectedTeam?.id || !userArena) return [];
     const dateStr = date.toISOString().split('T')[0];
     return teamGames.filter(game => {
       const gameDate = new Date(game.starts_at).toISOString().split('T')[0];
@@ -478,20 +453,20 @@ const UserSchedulingPage: React.FC = () => {
   };
 
   // Loading states
-  if (seasonsLoading || leaguesLoading || userTeamLoading || userClubLoading || userArenaLoading) {
+  if (seasonsLoading || leaguesLoading || userClubLoading || userArenaLoading) {
     return <div className="loading">Loading your team information...</div>;
   }
 
-  if (seasonsError || leaguesError || userTeamError || userClubError || userArenaError) {
+  if (seasonsError || leaguesError || userClubError || userArenaError) {
     return <div className="error">Error loading team data</div>;
   }
 
-  if (!userTeam || !userClub || !userArena) {
+  if (!selectedTeam || !userTeam || !userClub || !userArena) {
     return (
       <div className="scheduling-page">
         <div className="header">
           <h1>Schedule Your Games</h1>
-          <p>Unable to load your team information</p>
+          <p>Please select a team to continue.</p>
         </div>
         <div className="error">
           <p>Your account is not properly associated with a team, club, or arena.</p>

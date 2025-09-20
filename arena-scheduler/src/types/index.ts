@@ -62,10 +62,18 @@ export interface GameChange {
 export interface User {
   id: number;
   email: string;
-  team_id: number;
+  team_id: number | null; // Can be null for admin users
   admin: boolean;
   email_code?: string;
   code_expires_at?: string;
+  teams?: Team[]; // Many-to-many relationship
+}
+
+export interface UserTeam {
+  id: number;
+  user_id: number;
+  team_id: number;
+  team: Team;
 }
 
 // Form data types
@@ -144,8 +152,9 @@ export interface VerifyCodeResponse {
 export interface CurrentUser {
   id: number;
   email: string;
-  team_id: number | null;
+  team_id: number | null; // Currently selected team
   admin: boolean;
+  teams?: Team[]; // All teams the user belongs to
 }
 
 export interface LogoutRequest {

@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi, sessionManager } from '@/services/api';
-import type { CurrentUser, AuthSession } from '@/types';
+import type { CurrentUser, AuthSession, Team } from '@/types';
 
 interface UserContextType {
   user: CurrentUser | null;
   session: AuthSession | null;
+  selectedTeam: Team | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  hasMultipleTeams: boolean;
   login: (email: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   sendCode: (email: string) => Promise<string | undefined>;
   refreshUser: () => Promise<void>;
+  selectTeam: (team: Team) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -31,10 +34,12 @@ interface UserProviderProps {
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isAuthenticated = !!user && !!session;
   const isAdmin = user?.admin || false;
+  const hasMultipleTeams = !isAdmin && user?.teams ? user.teams.length > 1 : false;
 
   // Initialize session on app start
   useEffect(() => {
@@ -46,6 +51,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         // Try to get current user
         const currentUser = await authApi.getCurrentUser();
         setUser(currentUser);
+        
+        // Auto-select team if user has only one team
+        if (!currentUser.admin && currentUser.teams && currentUser.teams.length === 1) {
+          setSelectedTeam(currentUser.teams[0]);
+        }
         
         // Get session token from localStorage
         const token = sessionManager.getSession();
@@ -89,6 +99,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       // Get current user
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
+      
+      // Auto-select team if user has only one team
+      if (!currentUser.admin && currentUser.teams && currentUser.teams.length === 1) {
+        setSelectedTeam(currentUser.teams[0]);
+      }
     } catch (error) {
       console.error('Error during login:', error);
       throw error;
@@ -108,6 +123,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       // Clear local state regardless of API call success
       setUser(null);
       setSession(null);
+      setSelectedTeam(null);
       sessionManager.clearSessionToken();
       sessionManager.removeSession();
     }
@@ -117,6 +133,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
+      
+      // Auto-select team if user has only one team
+      if (!currentUser.admin && currentUser.teams && currentUser.teams.length === 1) {
+        setSelectedTeam(currentUser.teams[0]);
+      }
     } catch (error) {
       console.error('Error refreshing user:', error);
       // If refresh fails, user might be logged out
@@ -124,16 +145,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
+  const selectTeam = (team: Team): void => {
+    setSelectedTeam(team);
+  };
+
   const value: UserContextType = {
     user,
     session,
+    selectedTeam,
     isLoading,
     isAuthenticated,
     isAdmin,
+    hasMultipleTeams,
     login,
     logout,
     sendCode,
     refreshUser,
+    selectTeam,
   };
 
   return (
