@@ -5,8 +5,10 @@ import type { User, CreateUserData } from '@/types';
 
 const UserManagement: React.FC = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserAdmin, setNewUserAdmin] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserAdmin, setEditUserAdmin] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -26,6 +28,7 @@ const UserManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setNewUserEmail('');
+      setNewUserAdmin(false);
     },
   });
 
@@ -36,6 +39,7 @@ const UserManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEditingUser(null);
       setEditUserEmail('');
+      setEditUserAdmin(false);
     },
   });
 
@@ -54,8 +58,7 @@ const UserManagement: React.FC = () => {
     if (newUserEmail.trim()) {
       createUserMutation.mutate({
         email: newUserEmail.trim(),
-        team_id: 0, // Admin users don't need a team
-        admin: true, // All users created here are admins
+        admin: newUserAdmin,
       });
     }
   };
@@ -63,6 +66,7 @@ const UserManagement: React.FC = () => {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setEditUserEmail(user.email);
+    setEditUserAdmin(user.admin);
   };
 
   const handleUpdateUser = (e: React.FormEvent) => {
@@ -72,8 +76,7 @@ const UserManagement: React.FC = () => {
         id: editingUser.id,
         data: {
           email: editUserEmail.trim(),
-          team_id: 0, // Admin users don't need a team
-          admin: true, // Keep as admin
+          admin: editUserAdmin,
         },
       });
     }
@@ -106,13 +109,13 @@ const UserManagement: React.FC = () => {
   return (
     <div className="user-management">
       <div className="section-header">
-        <h2>Admin User Management</h2>
-        <p>Manage admin user accounts for system access</p>
+        <h2>User Management</h2>
+        <p>Manage user accounts and their admin privileges</p>
       </div>
 
       {/* Create User Form */}
       <div className="form">
-        <h3>Create New Admin User</h3>
+        <h3>Create New User</h3>
         <form onSubmit={handleCreateUser}>
           <div className="form-group">
             <label htmlFor="userEmail">Email Address:</label>
@@ -121,10 +124,21 @@ const UserManagement: React.FC = () => {
               type="email"
               value={newUserEmail}
               onChange={(e) => setNewUserEmail(e.target.value)}
-              placeholder="Enter admin email address"
+              placeholder="Enter email address"
               required
               className="form-input"
             />
+          </div>
+          <div className="form-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={newUserAdmin}
+                onChange={(e) => setNewUserAdmin(e.target.checked)}
+                className="checkbox-input"
+              />
+              <span className="checkbox-text">Admin privileges</span>
+            </label>
           </div>
           <div className="form-actions">
             <button
@@ -132,7 +146,7 @@ const UserManagement: React.FC = () => {
               className="btn btn-primary"
               disabled={createUserMutation.isPending}
             >
-              {createUserMutation.isPending ? 'Creating...' : 'Create Admin User'}
+              {createUserMutation.isPending ? 'Creating...' : 'Create User'}
             </button>
           </div>
         </form>
@@ -140,14 +154,17 @@ const UserManagement: React.FC = () => {
 
       {/* Users List */}
       <div className="list">
-        <h3>Admin Users ({users.length})</h3>
+        <h3>Users ({users.length})</h3>
         {users.length === 0 ? (
-          <p className="empty-state">No admin users found. Create your first admin user above.</p>
+          <p className="empty-state">No users found. Create your first user above.</p>
         ) : (
           users.map((user) => (
             <div key={user.id} className="list-item">
               {editingUser?.id === user.id ? (
-                <form onSubmit={handleUpdateUser} className="edit-form">
+                <div className="edit-form">
+                  <div style={{ background: '#f0f0f0', padding: '10px', margin: '10px 0', border: '1px solid #ccc' }}>
+                    <strong>EDIT MODE - User ID: {user.id}</strong>
+                  </div>
                   <input
                     type="email"
                     value={editUserEmail}
@@ -155,10 +172,22 @@ const UserManagement: React.FC = () => {
                     className="edit-input"
                     required
                   />
+                  <div style={{ margin: '10px 0', padding: '10px', border: '2px solid red' }}>
+                    <input
+                      type="checkbox"
+                      id={`admin-${user.id}`}
+                      checked={editUserAdmin}
+                      onChange={(e) => setEditUserAdmin(e.target.checked)}
+                    />
+                    <label htmlFor={`admin-${user.id}`} style={{ marginLeft: '8px', fontWeight: 'bold' }}>
+                      Admin privileges
+                    </label>
+                  </div>
                   <div className="edit-actions">
                     <button
-                      type="submit"
+                      type="button"
                       className="btn btn-sm btn-primary"
+                      onClick={handleUpdateUser}
                       disabled={updateUserMutation.isPending}
                     >
                       {updateUserMutation.isPending ? 'Saving...' : 'Save'}
@@ -169,18 +198,20 @@ const UserManagement: React.FC = () => {
                       onClick={() => {
                         setEditingUser(null);
                         setEditUserEmail('');
+                        setEditUserAdmin(false);
                       }}
                     >
                       Cancel
                     </button>
                   </div>
-                </form>
+                </div>
               ) : (
                 <>
                   <div className="item-info">
                     <span className="item-name">
+                      {user.admin && <span className="admin-badge">Admin</span>}
+                      {user.admin && <span style={{ marginRight: '8px' }}></span>}
                       {user.email}
-                      <span className="admin-badge">Admin</span>
                     </span>
                     <div className="item-details">
                       {user.email_code && (
