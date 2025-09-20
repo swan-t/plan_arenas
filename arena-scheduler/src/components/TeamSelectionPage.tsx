@@ -39,15 +39,23 @@ const TeamSelectionPage: React.FC = () => {
                 {team.contact_email && (
                   <p><strong>Contact:</strong> {team.contact_email}</p>
                 )}
-                {team.scheduling_done_at ? (
-                  <div className="status-badge completed">
-                    ✓ Scheduling Complete
-                  </div>
-                ) : (
-                  <div className="status-badge pending">
-                    ⏳ Currently Scheduling
-                  </div>
-                )}
+                {(() => {
+                  // Check team status based on scheduling_done_at field
+                  if (team.scheduling_done_at) {
+                    return (
+                      <div className="status-badge completed">
+                        ✓ Scheduling Complete
+                      </div>
+                    );
+                  } else {
+                    // Team is in user's teams array but not completed, so it's currently scheduling
+                    return (
+                      <div className="status-badge active">
+                        ⏳ Currently Scheduling
+                      </div>
+                    );
+                  }
+                })()}
               </div>
             </div>
             <div className="team-actions">

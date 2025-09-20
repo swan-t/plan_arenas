@@ -4,7 +4,7 @@ import { teamsApi, usersApi, arenasApi, gamesApi, seasonsApi, leaguesApi } from 
 import type { Team, Game } from '@/types';
 
 const SchedulingPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'invitations' | 'calendar' | 'admin'>('invitations');
+  const [activeTab, setActiveTab] = useState<'invitations' | 'calendar' | 'admin' | 'unscheduled'>('invitations');
   const [selectedArenaId, setSelectedArenaId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
@@ -92,12 +92,37 @@ const SchedulingPage: React.FC = () => {
         throw new Error('Team has no contact email');
       }
       
-      // Create user for the team
-      await usersApi.create({
-        email: team.contact_email,
-        team_id: teamId,
-        admin: false,
-      });
+      // Check if user with this email already exists
+      const existingUser = await usersApi.getByEmail(team.contact_email);
+      
+      if (existingUser) {
+        // User exists, check if they already have this team
+        const hasTeam = existingUser.teams?.some(t => t.id === teamId);
+        if (hasTeam) {
+          // Update team scheduling status to "currently scheduling"
+          await teamsApi.update(teamId, {
+            club_id: team.club_id,
+            league_id: team.league_id,
+            name: team.name,
+            url: team.url,
+            contact_email: team.contact_email,
+            scheduling_done_at: undefined, // Clear any previous completion
+          });
+          return; // Already associated
+        }
+        
+        // User exists but doesn't have this team, add it
+        await usersApi.addTeamToUser(existingUser.id, teamId);
+      } else {
+        // User doesn't exist, create new user
+        const newUser = await usersApi.create({
+          email: team.contact_email,
+          admin: false,
+        });
+        
+        // Add team to the new user
+        await usersApi.addTeamToUser(newUser.id, teamId);
+      }
       
       // Update team scheduling status to "currently scheduling"
       await teamsApi.update(teamId, {
@@ -121,6 +146,7 @@ const SchedulingPage: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) throw new Error('Team not found');
       
+      // Mark team as complete (keep user-team relationship)
       await teamsApi.update(teamId, {
         club_id: team.club_id,
         league_id: team.league_id,
@@ -129,9 +155,13 @@ const SchedulingPage: React.FC = () => {
         contact_email: team.contact_email,
         scheduling_done_at: new Date().toISOString(),
       });
+      
+      // Note: We keep the user-team relationship so users can still see their games
+      // and potentially be invited to other teams in the future
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', selectedArenaId] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 
@@ -151,14 +181,27 @@ const SchedulingPage: React.FC = () => {
 
   // Helper functions
   const getTeamStatus = (team: Team) => {
-    const teamUser = users.find(u => u.team_id === team.id);
+    // Check if team is marked as complete first (highest priority)
     if (team.scheduling_done_at) {
       return 'completed';
-    } else if (teamUser) {
+    }
+    
+    // Check if any user has THIS SPECIFIC team in their teams array
+    const teamUser = users.find(u => u.teams?.some(t => t.id === team.id));
+    
+    if (teamUser) {
+      // If team has a user associated, it's currently scheduling
       return 'active';
     } else {
+      // No user and not complete, it's pending
       return 'pending';
     }
+  };
+
+  // Check if a game is considered unscheduled
+  const isGameUnscheduled = (game: Game) => {
+    // Games are considered unscheduled if scheduled_at is null or undefined
+    return game.scheduled_at === null || game.scheduled_at === undefined;
   };
 
   // Get games for the selected arena
@@ -220,7 +263,10 @@ const SchedulingPage: React.FC = () => {
 
     updateGameMutation.mutate({
       gameId: selectedGame.id,
-      updates: { starts_at: newDateTime.toISOString() }
+      updates: { 
+        starts_at: newDateTime.toISOString(),
+        scheduled_at: newDateTime.toISOString() // Mark as scheduled
+      }
     });
   };
 
@@ -354,7 +400,10 @@ const SchedulingPage: React.FC = () => {
       for (const game of updatedGames) {
         await updateGameMutation.mutateAsync({
           gameId: game.id,
-          updates: { starts_at: game.starts_at }
+          updates: { 
+            starts_at: game.starts_at,
+            scheduled_at: game.starts_at // Mark as scheduled
+          }
         });
       }
       alert(`Successfully compacted ${updatedGames.length} games for ${formatDate(date)}`);
@@ -461,6 +510,12 @@ const SchedulingPage: React.FC = () => {
         >
           Admin View
         </button>
+        <button
+          className={`tab ${activeTab === 'unscheduled' ? 'active' : ''}`}
+          onClick={() => setActiveTab('unscheduled')}
+        >
+          Unscheduled Games
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -535,65 +590,6 @@ const SchedulingPage: React.FC = () => {
               </div>
             ) : (
               <div>
-                {/* Manual Scheduling Form */}
-                {showManualScheduling && selectedGame && (
-                  <div className="manual-scheduling-form">
-                    <h3>Manually Schedule Game</h3>
-                    <div className="game-info">
-                      <p><strong>Game:</strong> {getTeamName(selectedGame.home_team_id)} vs {getTeamName(selectedGame.away_team_id)}</p>
-                      <p><strong>League:</strong> {getLeagueName(selectedGame.league_id)}</p>
-                      <p><strong>Ice Time:</strong> {selectedGame.ice_time} minutes</p>
-                    </div>
-                    
-                    <form onSubmit={handleManualScheduleSubmit} className="form">
-                      <div className="form-row">
-                        <div className="form-group">
-                          <label htmlFor="manualDate">Date:</label>
-                          <input
-                            type="date"
-                            id="manualDate"
-                            value={manualDate}
-                            onChange={(e) => setManualDate(e.target.value)}
-                            required
-                            className="form-input"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label htmlFor="manualTime">Time:</label>
-                          <input
-                            type="time"
-                            id="manualTime"
-                            value={manualTime}
-                            onChange={(e) => setManualTime(e.target.value)}
-                            required
-                            className="form-input"
-                          />
-                        </div>
-                      </div>
-                      <div className="form-actions">
-                        <button 
-                          type="submit" 
-                          className="btn btn-primary"
-                          disabled={updateGameMutation.isPending}
-                        >
-                          {updateGameMutation.isPending ? 'Scheduling...' : 'Schedule Game'}
-                        </button>
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setShowManualScheduling(false);
-                            setSelectedGame(null);
-                            setManualDate('');
-                            setManualTime('');
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
 
                 {/* View Toggle */}
                 <div className="view-toggle">
@@ -722,7 +718,147 @@ const SchedulingPage: React.FC = () => {
             )}
           </div>
         )}
+
+        {activeTab === 'unscheduled' && (
+          <div>
+            <h2>Unscheduled Games</h2>
+            <p>Games that still need time assignment</p>
+            
+            {!selectedArenaId ? (
+              <div className="no-arena-selected">
+                <p>Please select an arena to view unscheduled games.</p>
+              </div>
+            ) : (
+              <div className="unscheduled-games">
+                {(() => {
+                  const arenaGames = getArenaGames();
+                  const unscheduledGames = arenaGames.filter(isGameUnscheduled);
+                  
+                  // Group by date
+                  const gamesByDate = unscheduledGames.reduce((acc, game) => {
+                    const date = new Date(game.starts_at).toDateString();
+                    if (!acc[date]) {
+                      acc[date] = [];
+                    }
+                    acc[date].push(game);
+                    return acc;
+                  }, {} as Record<string, Game[]>);
+                  
+                  const sortedDates = Object.keys(gamesByDate).sort((a, b) => 
+                    new Date(a).getTime() - new Date(b).getTime()
+                  );
+                  
+                  if (sortedDates.length === 0) {
+                    return (
+                      <div className="no-unscheduled-games">
+                        <p>🎉 All games are scheduled!</p>
+                        <p>No unscheduled games found for this arena.</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="unscheduled-games-list">
+                      {sortedDates.map(date => (
+                        <div key={date} className="date-group">
+                          <h3 className="date-header">
+                            {new Date(date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </h3>
+                          <div className="games-grid">
+                            {gamesByDate[date].map(game => (
+                              <div key={game.id} className="game-card unscheduled">
+                                <div className="game-info">
+                                  <h4>{getTeamName(game.home_team_id)} vs {getTeamName(game.away_team_id)}</h4>
+                                  <p><strong>League:</strong> {getLeagueName(game.league_id)}</p>
+                                  <p><strong>Ice Time:</strong> {game.ice_time} minutes</p>
+                                  <p><strong>Status:</strong> <span className="status-unscheduled">⏰ Needs Time</span></p>
+                                </div>
+                                <div className="game-actions">
+                                  <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => handleManualSchedule(game)}
+                                  >
+                                    Schedule Now
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Manual Scheduling Form - Available from all tabs */}
+      {showManualScheduling && selectedGame && (
+        <div className="manual-scheduling-form">
+          <h3>Manually Schedule Game</h3>
+          <div className="game-info">
+            <p><strong>Game:</strong> {getTeamName(selectedGame.home_team_id)} vs {getTeamName(selectedGame.away_team_id)}</p>
+            <p><strong>League:</strong> {getLeagueName(selectedGame.league_id)}</p>
+            <p><strong>Ice Time:</strong> {selectedGame.ice_time} minutes</p>
+          </div>
+          
+          <form onSubmit={handleManualScheduleSubmit} className="form">
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="manualDate">Date:</label>
+                <input
+                  type="date"
+                  id="manualDate"
+                  value={manualDate}
+                  onChange={(e) => setManualDate(e.target.value)}
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="manualTime">Time:</label>
+                <input
+                  type="time"
+                  id="manualTime"
+                  value={manualTime}
+                  onChange={(e) => setManualTime(e.target.value)}
+                  required
+                  className="form-input"
+                />
+              </div>
+            </div>
+            <div className="form-actions">
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                disabled={updateGameMutation.isPending}
+              >
+                {updateGameMutation.isPending ? 'Scheduling...' : 'Schedule Game'}
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowManualScheduling(false);
+                  setSelectedGame(null);
+                  setManualDate('');
+                  setManualTime('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
