@@ -47,6 +47,7 @@ export interface Game {
   arena_id: number;
   starts_at: string;
   ice_time: number;
+  scheduled_at?: string | null; // null means not scheduled
 }
 
 export interface GameChange {
@@ -62,7 +63,6 @@ export interface GameChange {
 export interface User {
   id: number;
   email: string;
-  team_id: number | null; // Can be null for admin users
   admin: boolean;
   email_code?: string;
   code_expires_at?: string;
@@ -118,10 +118,10 @@ export interface CreateGameData {
 
 export interface CreateUserData {
   email: string;
-  team_id: number;
   admin: boolean;
   email_code?: string;
   code_expires_at?: string;
+  teams?: Team[]; // Many-to-many relationship
 }
 
 // Authentication types
@@ -152,7 +152,6 @@ export interface VerifyCodeResponse {
 export interface CurrentUser {
   id: number;
   email: string;
-  team_id: number | null; // Currently selected team
   admin: boolean;
   teams?: Team[]; // All teams the user belongs to
 }

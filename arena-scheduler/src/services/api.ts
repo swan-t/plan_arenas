@@ -234,6 +234,18 @@ export const usersApi = {
     return response.data.data;
   },
 
+  // Get user by email (searches through all users)
+  getByEmail: async (email: string): Promise<User | null> => {
+    try {
+      const response = await api.get<ApiResponse<User[]>>('/users');
+      const users = response.data.data;
+      return users.find(user => user.email === email) || null;
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      return null;
+    }
+  },
+
   // Create user
   create: async (data: CreateUserData): Promise<User> => {
     const response = await api.post<ApiResponse<User>>('/users', { user: data });
@@ -244,6 +256,29 @@ export const usersApi = {
   update: async (id: number, data: Partial<CreateUserData>): Promise<User> => {
     const response = await api.put<ApiResponse<User>>(`/users/${id}`, { user: data });
     return response.data.data;
+  },
+
+  // Add team to user (for many-to-many relationship)
+  addTeamToUser: async (userId: number, teamId: number): Promise<void> => {
+    console.log('addTeamToUser called with:', { userId, teamId });
+    
+    // Use the new API endpoint to add team to user
+    const response = await api.post<ApiResponse<User>>(`/users/${userId}/teams`, {
+      team: {
+        team_id: teamId,
+        role: "member"
+      }
+    });
+    console.log('Team added to user successfully:', response.data);
+  },
+
+  // Remove team from user (for many-to-many relationship)
+  removeTeamFromUser: async (userId: number, teamId: number): Promise<void> => {
+    console.log('removeTeamFromUser called with:', { userId, teamId });
+    
+    // Use the new API endpoint to remove team from user
+    await api.delete<ApiResponse<User>>(`/users/${userId}/teams/${teamId}`);
+    console.log('Team removed from user successfully');
   },
 
   // Delete user

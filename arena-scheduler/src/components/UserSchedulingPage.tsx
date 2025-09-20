@@ -325,7 +325,10 @@ const UserSchedulingPage: React.FC = () => {
       
       await updateGameMutation.mutateAsync({
         gameId: selectedGame.id,
-        updates: { starts_at: newDateTime.toISOString() }
+        updates: { 
+          starts_at: newDateTime.toISOString(),
+          scheduled_at: newDateTime.toISOString() // Mark as scheduled
+        }
       });
       
       setSchedulingMode('list');
