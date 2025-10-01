@@ -25,8 +25,8 @@ const UserSchedulingPage: React.FC = () => {
     queryFn: () => seasonsApi.getAll(),
   });
 
-  // Get the current season (assuming the first one is current)
-  const currentSeason = seasons.length > 0 ? seasons[0] : null;
+  // Get the current season (find the one with is_current: true)
+  const currentSeason = seasons.find(season => season.is_current) || (seasons.length > 0 ? seasons[0] : null);
 
   // Fetch leagues for the current season
   const {
@@ -81,6 +81,28 @@ const UserSchedulingPage: React.FC = () => {
     enabled: !!userTeam?.league_id,
   });
 
+  // Fetch games for the user's team's league
+  const {
+    data: leagueGames = [],
+    isLoading: leagueGamesLoading,
+    error: leagueGamesError,
+  } = useQuery({
+    queryKey: ['league-games', userTeam?.league_id],
+    queryFn: () => gamesApi.getByLeague(userTeam!.league_id),
+    enabled: !!userTeam?.league_id,
+  });
+
+  // Also try fetching all games and filtering by team
+  const {
+    data: allGamesForTeam = [],
+    isLoading: allGamesForTeamLoading,
+    error: allGamesForTeamError,
+  } = useQuery({
+    queryKey: ['all-games-for-team', userTeam?.id],
+    queryFn: () => gamesApi.getAll(),
+    enabled: !!userTeam?.id,
+  });
+
   // Fetch all games for the arena to check for conflicts
   const {
     data: allGames = [],
@@ -92,11 +114,33 @@ const UserSchedulingPage: React.FC = () => {
     enabled: !!userArena?.id,
   });
 
-  // Filter games for this team in the selected arena
-  const teamGames = allGames.filter(game => 
-    (game.home_team_id === selectedTeam?.id || game.away_team_id === selectedTeam?.id) &&
-    game.arena_id === userArena?.id
-  );
+  // Check if a game is considered unscheduled
+  const isGameUnscheduled = (game: Game) => {
+    // Games are considered unscheduled if scheduled_at is null or undefined
+    return game.scheduled_at === null || game.scheduled_at === undefined;
+  };
+
+  // Filter games for this team in the selected arena (only unscheduled games)
+  // Try both league games and all games approaches
+  const teamGamesFromLeague = leagueGames.filter(game => {
+    const isTeamMatch = game.home_team_id === selectedTeam?.id || game.away_team_id === selectedTeam?.id;
+    const isArenaMatch = game.arena_id === userArena?.id;
+    const isUnscheduled = isGameUnscheduled(game);
+    
+    return isTeamMatch && isArenaMatch && isUnscheduled;
+  });
+
+  const teamGamesFromAll = allGamesForTeam.filter(game => {
+    const isTeamMatch = game.home_team_id === selectedTeam?.id || game.away_team_id === selectedTeam?.id;
+    const isArenaMatch = game.arena_id === userArena?.id;
+    const isUnscheduled = isGameUnscheduled(game);
+    
+    return isTeamMatch && isArenaMatch && isUnscheduled;
+  });
+
+  // Use whichever approach finds games
+  const teamGames = teamGamesFromLeague.length > 0 ? teamGamesFromLeague : teamGamesFromAll;
+
 
   // Update game mutation
   const updateGameMutation = useMutation({
@@ -104,6 +148,7 @@ const UserSchedulingPage: React.FC = () => {
       await gamesApi.update(gameId, updates);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['league-games', userTeam?.league_id] });
       queryClient.invalidateQueries({ queryKey: ['all-games', userArena?.id] });
     },
   });
@@ -479,12 +524,12 @@ const UserSchedulingPage: React.FC = () => {
     );
   }
 
-  if (teamsLoading || allGamesLoading) {
+  if (teamsLoading || leagueGamesLoading || allGamesForTeamLoading || allGamesLoading) {
     return <div className="loading">Loading your team's games...</div>;
   }
 
-  if (teamsError || allGamesError) {
-    return <div className="error">Error loading games data</div>;
+  if (teamsError || leagueGamesError || allGamesForTeamError || allGamesError) {
+    return <div className="error">Error loading games data: {leagueGamesError?.message || allGamesForTeamError?.message || teamsError?.message || allGamesError?.message}</div>;
   }
 
   // We already have userTeam, userClub, and userArena from the queries above
@@ -573,7 +618,7 @@ const UserSchedulingPage: React.FC = () => {
           
           {getDaysWithGames(currentDate).length === 0 && (
             <div className="no-games">
-              <p>No games found for your team.</p>
+              <p>No unscheduled games found for your team.</p>
             </div>
           )}
         </div>
@@ -582,13 +627,13 @@ const UserSchedulingPage: React.FC = () => {
       {/* List View */}
       {viewMode === 'list' && schedulingMode === 'list' && (
         <div className="games-section">
-          <h2>Your Team's Games</h2>
-          <p>Click on a game to schedule or reschedule it</p>
+          <h2>Your Team's Unscheduled Games</h2>
+          <p>Click on a game to schedule it</p>
           
           {teamGames.length === 0 ? (
             <div className="no-games">
-              <p>No games scheduled for your team yet.</p>
-              <p>Games will appear here once they are created by an administrator.</p>
+              <p>No unscheduled games found for your team.</p>
+              <p>All your team's games have been scheduled, or no games have been created yet.</p>
             </div>
           ) : (
             <div className="games-list">

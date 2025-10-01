@@ -23,9 +23,13 @@ import type {
   CurrentUser,
   LogoutRequest,
   LogoutResponse,
+  InviteTeamToScheduleRequest,
+  NotifyAdminsGamesScheduledRequest,
+  SendGameInvitationsRequest,
+  EmailResponse,
 } from '@/types';
 
-const API_BASE_URL = 'https://grind.local/arenax/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://arenaapi.skhojden.se/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -64,7 +68,15 @@ const createApiService = <T, CreateT>(endpoint: string, wrapperKey: string) => (
 });
 
 // Specific API services
-export const arenasApi = createApiService<Arena, CreateArenaData>('arenas', 'arena');
+export const arenasApi = {
+  ...createApiService<Arena, CreateArenaData>('arenas', 'arena'),
+  
+  // Email endpoints
+  sendGameInvitations: async (id: number, data: SendGameInvitationsRequest = {}): Promise<EmailResponse> => {
+    const response = await api.post<ApiResponse<EmailResponse>>(`/arenas/${id}/send-game-invitations`, data);
+    return response.data.data;
+  },
+};
 export const clubsApi = createApiService<Club, CreateClubData>('clubs', 'club');
 export const seasonsApi = createApiService<Season, CreateSeasonData>('seasons', 'season');
 // Leagues API - uses nested endpoints
@@ -149,6 +161,17 @@ export const teamsApi = {
   // Delete a team
   delete: async (id: number): Promise<void> => {
     await api.delete(`/teams/${id}`);
+  },
+
+  // Email endpoints
+  inviteToSchedule: async (id: number, data: InviteTeamToScheduleRequest = {}): Promise<EmailResponse> => {
+    const response = await api.post<ApiResponse<EmailResponse>>(`/teams/${id}/invite-to-schedule`, data);
+    return response.data.data;
+  },
+
+  notifyAdminsGamesScheduled: async (id: number, data: NotifyAdminsGamesScheduledRequest = {}): Promise<EmailResponse> => {
+    const response = await api.post<ApiResponse<EmailResponse>>(`/teams/${id}/notify-admins-games-scheduled`, data);
+    return response.data.data;
   },
 };
 

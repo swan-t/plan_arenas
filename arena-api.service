@@ -1,0 +1,32 @@
+[Unit]
+Description=Arena API Service
+After=network.target
+
+[Service]
+Type=simple
+User=arena-app
+Group=www-data
+WorkingDirectory=/var/www/arena-api
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Environment=CORS_ORIGIN=https://arena.skhojden.se
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=arena-api
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/arena-api
+ReadWritePaths=/var/log/arena-scheduler
+
+[Install]
+WantedBy=multi-user.target
+

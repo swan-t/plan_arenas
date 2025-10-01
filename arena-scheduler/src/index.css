@@ -2049,3 +2049,23 @@ h2 {
   color: #6c757d;
   font-size: 1.1rem;
 }
+
+/* Formal Invitation Section */
+.formal-invitation-section {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.formal-invitation-section h3 {
+  margin: 0 0 0.5rem 0;
+  color: #495057;
+}
+
+.formal-invitation-section p {
+  margin: 0 0 1rem 0;
+  color: #6c757d;
+  line-height: 1.5;
+}

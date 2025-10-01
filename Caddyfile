@@ -1,0 +1,103 @@
+# Arena Scheduler Caddy Configuration
+# Frontend: arena.skhojden.se
+# API: arenaapi.skhojden.se
+
+# Frontend - arena.skhojden.se
+arena.skhojden.se {
+    root * /var/www/arena-scheduler
+    file_server
+    
+    # Handle SPA routing - serve index.html for all routes
+    try_files {path} /index.html
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+    
+    # Cache static assets
+    @static {
+        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "public, max-age=31536000"
+    
+    # Compress responses
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/arena-frontend.log
+        format json
+    }
+}
+
+# API - arenaapi.skhojden.se
+arenaapi.skhojden.se {
+    reverse_proxy localhost:3001 {
+        # Health check
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 5s
+    }
+    
+    # CORS headers for frontend
+    header {
+        Access-Control-Allow-Origin "https://arena.skhojden.se"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Max-Age "86400"
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 200
+    
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+    
+    # Rate limiting (adjust as needed)
+    rate_limit {
+        zone static {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+    
+    # Compress responses
+    encode gzip
+    
+    # Logging
+    log {
+        output file /var/log/caddy/arena-api.log
+        format json
+    }
+}
+
+# Global options
+{
+    # Auto HTTPS
+    email your-email@example.com
+    
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+    
+    # Admin API (optional - for Caddy management)
+    admin localhost:2019
+}
+

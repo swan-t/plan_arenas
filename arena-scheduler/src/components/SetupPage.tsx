@@ -52,10 +52,16 @@ const SetupPage: React.FC = () => {
   // Auto-select current season when seasons are loaded
   React.useEffect(() => {
     if (seasons.length > 0 && !selectedSeasonId) {
-      // Auto-select the most recent season (last in the array)
-      const currentSeason = seasons[seasons.length - 1];
+      // Auto-select the season with is_current: true
+      const currentSeason = seasons.find(season => season.is_current);
       if (currentSeason) {
         setSelectedSeasonId(currentSeason.id);
+      } else {
+        // Fallback to the most recent season if no current season is marked
+        const fallbackSeason = seasons[seasons.length - 1];
+        if (fallbackSeason) {
+          setSelectedSeasonId(fallbackSeason.id);
+        }
       }
     }
   }, [seasons, selectedSeasonId]);
@@ -748,9 +754,9 @@ const SetupPage: React.FC = () => {
                 className="season-select"
               >
                 <option value="">Choose a season to manage leagues</option>
-                {seasons.map((season, index) => (
+                {seasons.map((season) => (
                   <option key={season.id} value={season.id}>
-                    {season.name} {index === seasons.length - 1 ? '(Current)' : ''}
+                    {season.name} {season.is_current ? '(Current)' : ''}
                   </option>
                 ))}
               </select>

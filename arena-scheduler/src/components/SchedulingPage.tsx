@@ -133,6 +133,11 @@ const SchedulingPage: React.FC = () => {
         contact_email: team.contact_email,
         scheduling_done_at: undefined, // Clear any previous completion
       });
+      
+      // Send invitation email to team
+      await teamsApi.inviteToSchedule(teamId, {
+        language: 'sv'
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', selectedArenaId] });
@@ -176,6 +181,24 @@ const SchedulingPage: React.FC = () => {
       setSelectedGame(null);
       setManualDate('');
       setManualTime('');
+    },
+  });
+
+  // Send formal invitations mutation
+  const sendFormalInvitationsMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedArenaId) throw new Error('No arena selected');
+      
+      return await arenasApi.sendGameInvitations(selectedArenaId, {
+        language: 'sv'
+      });
+    },
+    onSuccess: (result) => {
+      alert(`Formal invitations sent successfully! ${result.emails_sent} emails sent, ${result.emails_failed} failed.`);
+    },
+    onError: (error) => {
+      console.error('Failed to send formal invitations:', error);
+      alert('Failed to send formal invitations. Please try again.');
     },
   });
 
@@ -430,6 +453,12 @@ const SchedulingPage: React.FC = () => {
     markTeamCompleteMutation.mutate(teamId);
   };
 
+  const handleSendFormalInvitations = () => {
+    if (confirm('Are you sure you want to send formal invitations to all scheduled games at this arena? This will send emails to all away teams.')) {
+      sendFormalInvitationsMutation.mutate();
+    }
+  };
+
   if (arenasLoading) {
     return <div className="loading">Loading arenas...</div>;
   }
@@ -590,6 +619,19 @@ const SchedulingPage: React.FC = () => {
               </div>
             ) : (
               <div>
+                
+                {/* Formal Invitation Section */}
+                <div className="formal-invitation-section">
+                  <h3>Send Formal Game Invitations</h3>
+                  <p>Send formal invitations to all scheduled games at this arena. Each invitation will be sent to the away team with reply-to set to the home team.</p>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleSendFormalInvitations()}
+                    disabled={sendFormalInvitationsMutation.isPending}
+                  >
+                    {sendFormalInvitationsMutation.isPending ? 'Sending...' : 'Send Formal Invitations'}
+                  </button>
+                </div>
 
                 {/* View Toggle */}
                 <div className="view-toggle">

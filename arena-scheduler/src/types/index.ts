@@ -18,6 +18,7 @@ export interface Club {
 export interface Season {
   id: number;
   name: string;
+  is_current: boolean;
 }
 
 export interface League {
@@ -162,4 +163,30 @@ export interface LogoutRequest {
 
 export interface LogoutResponse {
   message: string;
+}
+
+// Email-related types
+export interface InviteTeamToScheduleRequest {
+  language?: 'sv' | 'en';
+}
+
+export interface NotifyAdminsGamesScheduledRequest {
+  language?: 'sv' | 'en';
+}
+
+export interface SendGameInvitationsRequest {
+  language?: 'sv' | 'en';
+  custom_message?: string;
+}
+
+export interface EmailResponse {
+  success: boolean;
+  message: string;
+  emails_sent: number;
+  emails_failed: number;
+  details?: {
+    sent_to: string[];
+    failed_to: string[];
+    games_included?: number;
+  };
 }

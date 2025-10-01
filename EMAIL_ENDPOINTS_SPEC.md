@@ -8,6 +8,29 @@ This specification outlines the implementation of 3 email endpoints for the Aren
 - Swedish email templates ready
 - Existing database models for Team, Game, User, Arena, Club, League
 
+## Environment Configuration
+
+### Development Environment
+- Use Postmark's **test API key** (emails won't actually send)
+- Or implement **email logging** to console/files instead of sending
+- Set `NODE_ENV=development` to enable safe email testing
+
+### Production Environment  
+- Use Postmark's **production API key**
+- Emails will be sent to real recipients
+- Set `NODE_ENV=production` to enable real email sending
+
+**Environment Variables:**
+```
+# Development
+POSTMARK_TEST_API_KEY=your_test_api_key
+FROM_EMAIL=test@yourdomain.com
+
+# Production  
+POSTMARK_API_KEY=your_production_api_key
+FROM_EMAIL=noreply@yourdomain.com
+```
+
 ## Endpoints to Implement
 
 ### 1. Team Invitation to Schedule Games
