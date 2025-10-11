@@ -81,6 +81,16 @@ const UserSchedulingPage: React.FC = () => {
     enabled: !!userTeam?.league_id,
   });
 
+  // Fetch clubs to get club names
+  const {
+    data: clubs = [],
+    isLoading: clubsLoading,
+    error: clubsError,
+  } = useQuery({
+    queryKey: ['clubs'],
+    queryFn: () => clubsApi.getAll(),
+  });
+
   // Fetch games for the user's team's league
   const {
     data: leagueGames = [],
@@ -179,7 +189,11 @@ const UserSchedulingPage: React.FC = () => {
   // Helper functions
   const getTeamName = (teamId: number) => {
     const team = teams.find((t: any) => t.id === teamId);
-    return team?.name || `Team ${teamId}`;
+    if (!team) return `Team ${teamId}`;
+    
+    // Get club name for display
+    const club = clubs.find((c: any) => c.id === team.club_id);
+    return club?.name || team.name;
   };
 
   const getArenaName = (arenaId: number) => {
@@ -547,12 +561,12 @@ const UserSchedulingPage: React.FC = () => {
     );
   }
 
-  if (teamsLoading || leagueGamesLoading || allGamesForTeamLoading || allGamesLoading) {
+  if (teamsLoading || leagueGamesLoading || allGamesForTeamLoading || allGamesLoading || clubsLoading) {
     return <div className="loading">Loading your team's games...</div>;
   }
 
-  if (teamsError || leagueGamesError || allGamesForTeamError || allGamesError) {
-    return <div className="error">Error loading games data: {leagueGamesError?.message || allGamesForTeamError?.message || teamsError?.message || allGamesError?.message}</div>;
+  if (teamsError || leagueGamesError || allGamesForTeamError || allGamesError || clubsError) {
+    return <div className="error">Error loading games data: {leagueGamesError?.message || allGamesForTeamError?.message || teamsError?.message || allGamesError?.message || clubsError?.message}</div>;
   }
 
   // We already have userTeam, userClub, and userArena from the queries above
@@ -638,7 +652,7 @@ const UserSchedulingPage: React.FC = () => {
                       >
                         <div className="game-time">{formatTime(game.starts_at)}</div>
                         <div className="game-teams">
-                          {getTeamName(game.home_team_id)} vs {getTeamName(game.away_team_id)}
+                          {getTeamName(game.home_team_id)} - {getTeamName(game.away_team_id)}
                         </div>
                         <div className="game-details">
                           {game.ice_time}min
@@ -677,7 +691,7 @@ const UserSchedulingPage: React.FC = () => {
                 <div key={game.id} className={`game-card ${isGameScheduled(game) ? 'scheduled' : ''}`}>
                   <div className="game-info">
                     <h3>
-                      {getTeamName(game.home_team_id)} vs {getTeamName(game.away_team_id)}
+                      {getTeamName(game.home_team_id)} - {getTeamName(game.away_team_id)}
                       {isGameScheduled(game) && <span className="scheduled-badge">Scheduled</span>}
                     </h3>
                     <p className="game-details">
@@ -718,7 +732,7 @@ const UserSchedulingPage: React.FC = () => {
             <div className="game-scheduling">
               <div className="game-info">
                 <h3>
-                  {getTeamName(selectedGame.home_team_id)} vs {getTeamName(selectedGame.away_team_id)}
+                  {getTeamName(selectedGame.home_team_id)} - {getTeamName(selectedGame.away_team_id)}
                 </h3>
                 <p className="game-details">
                   <strong>Date:</strong> {new Date(selectedGame.starts_at).toLocaleDateString()}<br />
