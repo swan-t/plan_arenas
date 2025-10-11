@@ -337,6 +337,15 @@ export const authApi = {
   },
 };
 
+// Messages API
+export const messagesApi = {
+  // Send scheduled games verification email
+  sendScheduledGamesVerification: async (): Promise<EmailResponse> => {
+    const response = await api.post<ApiResponse<EmailResponse>>('/messages/scheduled_games_verifications', {});
+    return response.data.data;
+  },
+};
+
 // Session management utilities
 export const sessionManager = {
   // Set session token in API headers

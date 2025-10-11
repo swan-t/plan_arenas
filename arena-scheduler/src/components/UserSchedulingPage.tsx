@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gamesApi, arenasApi, clubsApi, leaguesApi, nestedApi, seasonsApi } from '@/services/api';
+import { gamesApi, arenasApi, clubsApi, leaguesApi, nestedApi, seasonsApi, messagesApi } from '@/services/api';
 import { useUser } from '@/contexts/UserContext';
 import { Game } from '@/types';
 
@@ -114,32 +114,37 @@ const UserSchedulingPage: React.FC = () => {
     enabled: !!userArena?.id,
   });
 
-  // Check if a game is considered unscheduled
-  const isGameUnscheduled = (game: Game) => {
-    // Games are considered unscheduled if scheduled_at is null or undefined
-    return game.scheduled_at === null || game.scheduled_at === undefined;
+  // Check if a game is considered scheduled
+  const isGameScheduled = (game: Game) => {
+    // Games are considered scheduled if scheduled_at is not null or undefined
+    return game.scheduled_at !== null && game.scheduled_at !== undefined;
   };
 
-  // Filter games for this team in the selected arena (only unscheduled games)
+  // Filter games for this team in the selected arena (both scheduled and unscheduled)
   // Try both league games and all games approaches
   const teamGamesFromLeague = leagueGames.filter(game => {
     const isTeamMatch = game.home_team_id === selectedTeam?.id || game.away_team_id === selectedTeam?.id;
     const isArenaMatch = game.arena_id === userArena?.id;
-    const isUnscheduled = isGameUnscheduled(game);
     
-    return isTeamMatch && isArenaMatch && isUnscheduled;
+    return isTeamMatch && isArenaMatch;
   });
 
   const teamGamesFromAll = allGamesForTeam.filter(game => {
     const isTeamMatch = game.home_team_id === selectedTeam?.id || game.away_team_id === selectedTeam?.id;
     const isArenaMatch = game.arena_id === userArena?.id;
-    const isUnscheduled = isGameUnscheduled(game);
     
-    return isTeamMatch && isArenaMatch && isUnscheduled;
+    return isTeamMatch && isArenaMatch;
   });
 
   // Use whichever approach finds games
-  const teamGames = teamGamesFromLeague.length > 0 ? teamGamesFromLeague : teamGamesFromAll;
+  const allTeamGames = teamGamesFromLeague.length > 0 ? teamGamesFromLeague : teamGamesFromAll;
+  
+  // Separate scheduled and unscheduled games
+  const scheduledGames = allTeamGames.filter(game => isGameScheduled(game));
+  const unscheduledGames = allTeamGames.filter(game => !isGameScheduled(game));
+  
+  // Combine them with unscheduled first, then scheduled
+  const teamGames = [...unscheduledGames, ...scheduledGames];
 
 
   // Update game mutation
@@ -150,8 +155,26 @@ const UserSchedulingPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['league-games', userTeam?.league_id] });
       queryClient.invalidateQueries({ queryKey: ['all-games', userArena?.id] });
+      queryClient.invalidateQueries({ queryKey: ['all-games-for-team', userTeam?.id] });
     },
   });
+
+  // Send verification email mutation
+  const sendVerificationMutation = useMutation({
+    mutationFn: async () => {
+      return await messagesApi.sendScheduledGamesVerification();
+    },
+    onSuccess: () => {
+      alert('Verification email sent successfully!');
+    },
+    onError: (error) => {
+      console.error('Failed to send verification email:', error);
+      alert('Failed to send verification email. Please try again.');
+    },
+  });
+
+  // Check if all games are scheduled
+  const allGamesScheduled = teamGames.length > 0 && teamGames.every(game => isGameScheduled(game));
 
   // Helper functions
   const getTeamName = (teamId: number) => {
@@ -547,20 +570,32 @@ const UserSchedulingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* View Toggle */}
+      {/* View Toggle and Actions */}
       <div className="view-toggle">
-        <button
-          className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setViewMode('calendar')}
-        >
-          Calendar View
-        </button>
-        <button
-          className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setViewMode('list')}
-        >
-          List View
-        </button>
+        <div>
+          <button
+            className={`btn ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('calendar')}
+          >
+            Calendar View
+          </button>
+          <button
+            className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('list')}
+          >
+            List View
+          </button>
+        </div>
+        
+        {allGamesScheduled && (
+          <button
+            className="btn btn-primary"
+            onClick={() => sendVerificationMutation.mutate()}
+            disabled={sendVerificationMutation.isPending}
+          >
+            {sendVerificationMutation.isPending ? 'Sending...' : 'Send Verification Email'}
+          </button>
+        )}
       </div>
 
       {/* Calendar View */}
@@ -597,9 +632,9 @@ const UserSchedulingPage: React.FC = () => {
                     {games.map((game) => (
                       <div
                         key={game.id}
-                        className="calendar-game"
-                        onClick={() => handleScheduleGame(game)}
-                        title="Click to schedule this game"
+                        className={`calendar-game ${isGameScheduled(game) ? 'scheduled' : ''}`}
+                        onClick={() => !isGameScheduled(game) && handleScheduleGame(game)}
+                        title={isGameScheduled(game) ? "Game is scheduled" : "Click to schedule this game"}
                       >
                         <div className="game-time">{formatTime(game.starts_at)}</div>
                         <div className="game-teams">
@@ -607,6 +642,7 @@ const UserSchedulingPage: React.FC = () => {
                         </div>
                         <div className="game-details">
                           {game.ice_time}min
+                          {isGameScheduled(game) && <span className="scheduled-badge">Scheduled</span>}
                         </div>
                       </div>
                     ))}
@@ -618,7 +654,7 @@ const UserSchedulingPage: React.FC = () => {
           
           {getDaysWithGames(currentDate).length === 0 && (
             <div className="no-games">
-              <p>No unscheduled games found for your team.</p>
+              <p>No games found for your team.</p>
             </div>
           )}
         </div>
@@ -627,21 +663,22 @@ const UserSchedulingPage: React.FC = () => {
       {/* List View */}
       {viewMode === 'list' && schedulingMode === 'list' && (
         <div className="games-section">
-          <h2>Your Team's Unscheduled Games</h2>
-          <p>Click on a game to schedule it</p>
+          <h2>Your Team's Games</h2>
+          <p>Unscheduled games can be scheduled by clicking on them</p>
           
           {teamGames.length === 0 ? (
             <div className="no-games">
-              <p>No unscheduled games found for your team.</p>
-              <p>All your team's games have been scheduled, or no games have been created yet.</p>
+              <p>No games found for your team.</p>
+              <p>No games have been created yet.</p>
             </div>
           ) : (
             <div className="games-list">
               {teamGames.map((game) => (
-                <div key={game.id} className="game-card">
+                <div key={game.id} className={`game-card ${isGameScheduled(game) ? 'scheduled' : ''}`}>
                   <div className="game-info">
                     <h3>
                       {getTeamName(game.home_team_id)} vs {getTeamName(game.away_team_id)}
+                      {isGameScheduled(game) && <span className="scheduled-badge">Scheduled</span>}
                     </h3>
                     <p className="game-details">
                       <strong>Arena:</strong> {getArenaName(game.arena_id)}<br />
@@ -650,12 +687,21 @@ const UserSchedulingPage: React.FC = () => {
                     </p>
                   </div>
                   <div className="game-actions">
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleScheduleGame(game)}
-                    >
-                      Schedule Game
-                    </button>
+                    {!isGameScheduled(game) ? (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleScheduleGame(game)}
+                      >
+                        Schedule Game
+                      </button>
+                    ) : (
+                      <button
+                        className="btn btn-secondary"
+                        disabled
+                      >
+                        Already Scheduled
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

@@ -1,0 +1,43 @@
+# Local Development Caddy Configuration
+# Frontend: dev_arena.skhojden.se
+# API: dev_arenaapi.skhojden.se
+
+# Global options - MUST BE FIRST
+{
+    # Use local CA for development
+    local_certs
+    
+    # Admin API
+    admin localhost:2019
+}
+
+# Frontend - dev_arena.skhojden.se
+dev_arena.skhojden.se {
+    # Serve from dist folder
+    root * /Users/svante/work/plan_arenas/arena-scheduler/dist
+    file_server
+    try_files {path} /index.html
+}
+
+# API - dev_arenaapi.skhojden.se
+dev_arenaapi.skhojden.se {
+    reverse_proxy localhost:4004
+    
+    # CORS headers for local frontend
+    header {
+        Access-Control-Allow-Origin "https://dev_arena.skhojden.se"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Max-Age "86400"
+    }
+    
+    # Handle preflight requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 200
+    
+    # Compress responses
+    encode gzip
+}

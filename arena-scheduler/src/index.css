@@ -1594,10 +1594,17 @@ h2 {
 /* Calendar View Styles */
 .view-toggle {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 10px;
   margin-bottom: 20px;
   padding: 10px 0;
   border-bottom: 1px solid #eee;
+}
+
+.view-toggle > div {
+  display: flex;
+  gap: 10px;
 }
 
 .calendar-view {
@@ -1946,6 +1953,61 @@ h2 {
   .team-selection-page {
     padding: 15px;
   }
+}
+
+/* Scheduled Badge */
+.scheduled-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 4px 10px;
+  background: #28a745;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Scheduled Game Cards */
+.game-card.scheduled {
+  background: #f0f8f1;
+  border-color: #c3e6cb;
+  opacity: 0.9;
+}
+
+.game-card.scheduled:hover {
+  border-color: #28a745;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+  opacity: 1;
+}
+
+.game-card.scheduled .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Scheduled Calendar Games */
+.calendar-game.scheduled {
+  background: #d4edda;
+  border-color: #28a745;
+  cursor: default;
+  opacity: 0.9;
+}
+
+.calendar-game.scheduled:hover {
+  background: #d4edda;
+  border-color: #28a745;
+  transform: none;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.calendar-game.scheduled .scheduled-badge {
+  margin-left: 0;
+  margin-top: 4px;
+  font-size: 10px;
+  padding: 2px 6px;
 }
 
 /* Unscheduled Games Styles */
