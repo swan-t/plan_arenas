@@ -368,7 +368,7 @@ const SetupPage: React.FC = () => {
     <div className="setup-page">
       <div className="header">
         <h1>Arena Scheduler Setup</h1>
-        <p>Configure your seasons, arenas, and clubs for the ice hockey scheduling system.</p>
+        <p>Configure your seasons, arenas, and clubs for the bandy scheduling system.</p>
       </div>
 
       {/* Tab Navigation */}
@@ -623,7 +623,7 @@ const SetupPage: React.FC = () => {
                 type="text"
                 value={newClubName}
                 onChange={(e) => setNewClubName(e.target.value)}
-                placeholder="e.g., Hockey Club Alpha"
+                placeholder="e.g., Bandy Club Alpha"
                 required
               />
             </div>

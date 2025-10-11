@@ -1,7 +1,7 @@
 # Arena Scheduler Development Plan
 
 ## Project Overview
-Building a React TypeScript app for scheduling ice hockey games in an arena. The app handles one club on one arena and provides scheduling functionality for teams and games.
+Building a React TypeScript app for scheduling bandy games in an arena. The app handles one club on one arena and provides scheduling functionality for teams and games.
 
 **API Base URL:** `https://grind.local/arenax/api`  
 **Frontend URL:** `https://grind.local/planner`
